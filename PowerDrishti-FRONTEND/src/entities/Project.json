@@ -1,0 +1,98 @@
+{
+    "name": "Project",
+        "type": "object",
+            "properties": {
+        "project_name": {
+            "type": "string",
+                "description": "Name of the project"
+        },
+        "budget": {
+            "type": "number",
+                "description": "Project budget in INR"
+        },
+        "location": {
+            "type": "string",
+                "enum": [
+                    "North",
+                    "South",
+                    "East",
+                    "West",
+                    "Central",
+                    "North-East"
+                ],
+                    "description": "Project region"
+        },
+        "tower_types": {
+            "type": "array",
+                "items": {
+                "type": "string",
+                    "enum": [
+                        "Suspension",
+                        "Tension",
+                        "Transposition",
+                        "Terminal"
+                    ]
+            },
+            "description": "Types of towers in project"
+        },
+        "substation_types": {
+            "type": "array",
+                "items": {
+                "type": "string",
+                    "enum": [
+                        "GIS",
+                        "AIS",
+                        "Hybrid"
+                    ]
+            },
+            "description": "Types of substations"
+        },
+        "geographic_terrain": {
+            "type": "string",
+                "enum": [
+                    "Plain",
+                    "Hilly",
+                    "Desert",
+                    "Coastal",
+                    "Forest"
+                ],
+                    "description": "Geographic terrain type"
+        },
+        "tax_percentage": {
+            "type": "number",
+                "description": "Tax percentage"
+        },
+        "forecast_data": {
+            "type": "object",
+                "description": "ML forecast results",
+                    "properties": {
+                "materials": {
+                    "type": "array",
+                        "items": {
+                        "type": "object"
+                    }
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "carbon_impact": {
+                    "type": "number"
+                }
+            }
+        },
+        "status": {
+            "type": "string",
+                "enum": [
+                    "Planning",
+                    "In Progress",
+                    "Completed"
+                ],
+                    "default": "Planning"
+        }
+    },
+    "required": [
+        "project_name",
+        "budget",
+        "location"
+    ]
+  }

@@ -1,0 +1,50 @@
+{
+    "name": "Report",
+        "type": "object",
+            "properties": {
+        "report_type": {
+            "type": "string",
+                "enum": [
+                    "Demand Forecast",
+                    "Inventory Status",
+                    "Procurement Recommendation",
+                    "Carbon Emissions",
+                    "Cost Overrun",
+                    "Supply Chain Risk",
+                    "KPI Dashboard",
+                    "Historical Trends"
+                ]
+        },
+        "project_id": {
+            "type": "string",
+                "description": "Associated project ID"
+        },
+        "date_range": {
+            "type": "object",
+                "properties": {
+                "start": {
+                    "type": "string",
+                        "format": "date"
+                },
+                "end": {
+                    "type": "string",
+                        "format": "date"
+                }
+            }
+        },
+        "data": {
+            "type": "object",
+                "description": "Report data and insights"
+        },
+        "insights": {
+            "type": "array",
+                "items": {
+                "type": "string"
+            },
+            "description": "AI-generated insights"
+        }
+    },
+    "required": [
+        "report_type"
+    ]
+  }

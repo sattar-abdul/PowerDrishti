@@ -1,0 +1,72 @@
+{
+    "name": "Material",
+        "type": "object",
+            "properties": {
+        "material_type": {
+            "type": "string",
+                "description": "Type of material (Steel, Insulator, Conductor, etc.)"
+        },
+        "quantity": {
+            "type": "number",
+                "description": "Quantity in units"
+        },
+        "unit": {
+            "type": "string",
+                "description": "Unit of measurement"
+        },
+        "project_id": {
+            "type": "string",
+                "description": "Associated project ID"
+        },
+        "current_location": {
+            "type": "object",
+                "properties": {
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "address": {
+                    "type": "string"
+                }
+            }
+        },
+        "destination": {
+            "type": "object",
+                "properties": {
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "address": {
+                    "type": "string"
+                }
+            }
+        },
+        "status": {
+            "type": "string",
+                "enum": [
+                    "In Transit",
+                    "Delivered",
+                    "Pending",
+                    "Delayed"
+                ],
+                    "default": "Pending"
+        },
+        "eta": {
+            "type": "string",
+                "format": "date-time"
+        },
+        "carbon_emissions": {
+            "type": "number",
+                "description": "CO2 emissions in kg"
+        }
+    },
+    "required": [
+        "material_type",
+        "quantity"
+    ]
+  }

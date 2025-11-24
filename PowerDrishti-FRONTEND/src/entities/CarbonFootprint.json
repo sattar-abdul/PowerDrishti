@@ -1,0 +1,46 @@
+{
+    "name": "CarbonFootprint",
+        "type": "object",
+            "properties": {
+        "source": {
+            "type": "string",
+                "enum": [
+                    "Sourcing",
+                    "Transport",
+                    "Storage",
+                    "Waste"
+                ],
+                    "description": "Source of emissions"
+        },
+        "project_id": {
+            "type": "string",
+                "description": "Associated project ID"
+        },
+        "emissions_kg": {
+            "type": "number",
+                "description": "CO2 emissions in kg"
+        },
+        "period": {
+            "type": "string",
+                "description": "Time period (e.g., 2024-Q1)"
+        },
+        "reduction_suggestions": {
+            "type": "array",
+                "items": {
+                "type": "object",
+                    "properties": {
+                    "suggestion": {
+                        "type": "string"
+                    },
+                    "potential_reduction": {
+                        "type": "number"
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "source",
+        "emissions_kg"
+    ]
+  }

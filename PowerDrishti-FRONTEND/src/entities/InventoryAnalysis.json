@@ -1,0 +1,45 @@
+{
+    "name": "InventoryAnalysis",
+        "type": "object",
+            "properties": {
+        "inventory_name": {
+            "type": "string",
+                "description": "Name/ID of the inventory warehouse"
+        },
+        "photo_url": {
+            "type": "string",
+                "description": "URL of uploaded warehouse photo"
+        },
+        "estimated_capacity": {
+            "type": "number",
+                "description": "Estimated capacity in cubic meters"
+        },
+        "current_utilization": {
+            "type": "number",
+                "description": "Current utilization percentage"
+        },
+        "overstock_risk": {
+            "type": "string",
+                "enum": [
+                    "Low",
+                    "Medium",
+                    "High"
+                ],
+                    "description": "Risk level of overstock"
+        },
+        "carbon_waste": {
+            "type": "number",
+                "description": "CO2 waste from excess storage in kg"
+        },
+        "recommendations": {
+            "type": "array",
+                "items": {
+                "type": "string"
+            },
+            "description": "AI recommendations for optimization"
+        }
+    },
+    "required": [
+        "inventory_name"
+    ]
+  }
