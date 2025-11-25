@@ -11,8 +11,19 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function ProjectForecast() {
+const ProjectForecast = () => {
+    const { token } = useAuth();
     const [inputMode, setInputMode] = useState("form"); // "form" or "pdf"
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [forecastResults, setForecastResults] = useState(null);
+    const [showWhatIf, setShowWhatIf] = useState(false);
+    const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
+
+    // PDF Upload State
+    const [selectedPdf, setSelectedPdf] = useState(null);
+    const [pdfUrl, setPdfUrl] = useState(null);
+    const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+
     const [formData, setFormData] = useState({
         // 1. Project Information
         project_name: "",
@@ -23,27 +34,18 @@ export default function ProjectForecast() {
         state_region: "",
         district: "",
         terrain_type: "",
-        accessibility_difficulty: "",
 
         // 3. Technical Fields
         project_type: "",
-        tower_types: [],
         line_voltage_level: "",
         substation_type: "None",
         expected_towers: "",
+        tower_types: [], // Array of strings
 
         // 4. Financial Inputs
         total_budget: "",
-        taxes_duty: ""
+        taxes_duty: "",
     });
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [forecastResults, setForecastResults] = useState(null);
-    const [showWhatIf, setShowWhatIf] = useState(false);
-    const [whatIfBudget, setWhatIfBudget] = useState(100);
-    const [selectedPdf, setSelectedPdf] = useState(null);
-    const [pdfUrl, setPdfUrl] = useState(null);
-    const [isUploadingPdf, setIsUploadingPdf] = useState(false);
-    const { token } = useAuth();
 
     const handlePdfSelect = async (e) => {
         const file = e.target.files[0];
@@ -96,9 +98,26 @@ export default function ProjectForecast() {
             // Simulate AI processing delay after saving
             setTimeout(() => {
                 setForecastResults({
+                    materials: [
+                        { material_name: "Steel (Towers)", quantity: 1200, unit: "Tons", confidence_percent: 92, min_quantity: 1100, max_quantity: 1300 },
+                        { material_name: "Conductor (ACSR)", quantity: 450, unit: "km", confidence_percent: 88, min_quantity: 420, max_quantity: 480 },
+                        { material_name: "Insulators (Polymer)", quantity: 3500, unit: "Nos", confidence_percent: 95, min_quantity: 3400, max_quantity: 3600 },
+                        { material_name: "Cement (Foundation)", quantity: 800, unit: "Bags", confidence_percent: 85, min_quantity: 750, max_quantity: 850 },
+                    ],
+                    total_carbon_kg: 450000,
+                    carbon_reduction_tips: [
+                        { tip: "Use recycled steel for tower structures", potential_reduction_percent: 15 },
+                        { tip: "Optimize route to reduce total line length", potential_reduction_percent: 8 },
+                        { tip: "Source cement from local green-certified suppliers", potential_reduction_percent: 5 }
+                    ],
                     estimated_cost: formData.total_budget * 1.1, // Mock logic
                     estimated_duration: `${formData.expected_completion_period} months`,
                     risk_level: "Medium",
+                    risk_factors: [
+                        "Potential delays due to terrain difficulty in selected district.",
+                        "Steel price volatility could impact budget.",
+                        "Right-of-way clearances might take longer than expected."
+                    ],
                     recommendations: [
                         "Optimize tower type selection for cost savings.",
                         "Consider alternate substation designs.",
@@ -106,7 +125,7 @@ export default function ProjectForecast() {
                     ]
                 });
                 setIsProcessing(false);
-            }, 800);
+            }, 1500);
 
         } catch (error) {
             console.error(error);
@@ -223,7 +242,7 @@ export default function ProjectForecast() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="terrain_type">Terrain Type *</Label>
+                                            <Label htmlFor="terrain_type">Terrain Type</Label>
                                             <Select value={formData.terrain_type} onValueChange={(value) => setFormData({ ...formData, terrain_type: value })}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select Terrain" />
@@ -231,22 +250,9 @@ export default function ProjectForecast() {
                                                 <SelectContent>
                                                     <SelectItem value="Plain">Plain</SelectItem>
                                                     <SelectItem value="Hilly">Hilly</SelectItem>
-                                                    <SelectItem value="Forest">Forest</SelectItem>
                                                     <SelectItem value="Coastal">Coastal</SelectItem>
-                                                    <SelectItem value="Urban Dense">Urban Dense</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="accessibility_difficulty">Accessibility Difficulty *</Label>
-                                            <Select value={formData.accessibility_difficulty} onValueChange={(value) => setFormData({ ...formData, accessibility_difficulty: value })}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select Difficulty" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Easy">Easy</SelectItem>
-                                                    <SelectItem value="Moderate">Moderate</SelectItem>
-                                                    <SelectItem value="Hard">Hard</SelectItem>
+                                                    <SelectItem value="Desert">Desert</SelectItem>
+                                                    <SelectItem value="Forest">Forest</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -316,7 +322,7 @@ export default function ProjectForecast() {
                                             {['Type A', 'Type B', 'Type C', 'Type D', 'Special'].map(type => (
                                                 <Badge
                                                     key={type}
-                                                    variant={formData.tower_types.includes(type) ? "default" : "outline"}
+                                                    variant={formData.tower_types?.includes(type) ? "default" : "outline"}
                                                     className="cursor-pointer px-3 py-1"
                                                     onClick={() => handleTowerTypeToggle(type)}
                                                 >
@@ -579,4 +585,6 @@ export default function ProjectForecast() {
             )}
         </div>
     );
-}
+};
+
+export default ProjectForecast;

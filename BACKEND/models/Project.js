@@ -34,11 +34,7 @@ const projectSchema = mongoose.Schema({
         enum: ['Plain', 'Hilly', 'Forest', 'Coastal', 'Urban Dense'],
         required: [true, 'Please select a terrain type']
     },
-    accessibility_difficulty: {
-        type: String,
-        enum: ['Easy', 'Moderate', 'Hard'],
-        required: [true, 'Please select accessibility difficulty']
-    },
+    // accessibility_difficulty removed as per request
 
     // 3. Technical Fields
     project_type: {
@@ -104,6 +100,23 @@ const projectSchema = mongoose.Schema({
         potential_reduction_percent: Number
     }],
     risk_factors: {
+        type: [String]
+    },
+
+    // New ML Prediction Fields
+    project_phase: {
+        type: String
+    },
+    procurement_status: {
+        type: String
+    },
+    onhand_quantity: {
+        type: Number
+    },
+    budget_per_month: {
+        type: Number
+    },
+    material_code: {
         type: [String]
     }
 }, {
