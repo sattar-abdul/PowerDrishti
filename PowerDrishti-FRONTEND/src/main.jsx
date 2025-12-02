@@ -12,6 +12,7 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import PrivateRoute from './components/PrivateRoute.jsx'
 import ProjectForecast from './pages/ProjectForecast.jsx'
 import Report from './pages/Report.jsx'
+import InventoryManagement from './pages/InventoryManagement.jsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -22,6 +23,7 @@ const router = createBrowserRouter(
       <Route element={<PrivateRoute />}>
         <Route path="/" element={<Layout><Dashboard /></Layout>} />
         <Route path="/inventory" element={<Layout><InventoryAnalyzer /></Layout>} />
+        <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
         <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
         <Route path="/forecast" element={<Layout><Report /></Layout>} />

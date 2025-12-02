@@ -10,7 +10,8 @@ import {
     Zap,
     Menu,
     X,
-    LogOut
+    LogOut,
+    Package
 } from "lucide-react";
 import {
     Sidebar,
@@ -44,6 +45,11 @@ const navigationItems = [
         title: "Inventory Analyzer",
         url: "/inventory",
         icon: Warehouse,
+    },
+    {
+        title: "Inventory Management",
+        url: "/inventory-management",
+        icon: Package,
     },
     {
         title: "Material Tracking",
