@@ -1,8 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const { createProject, getProjects } = require('../controllers/projectController');
-const { protect } = require('../middleware/authMiddleware');
+import { Router } from 'express';
+const ProjectRouter = Router();
+import { createProject, getProjects } from '../controllers/projectController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
-router.route('/').post(protect, createProject).get(protect, getProjects);
+ProjectRouter.route('/').post(protect, createProject).get(protect, getProjects);
 
-module.exports = router;
+export {ProjectRouter};

@@ -1,7 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const connectDB = require('./config/db');
-require('dotenv').config();
+import express, { json, urlencoded } from 'express';
+import cors from 'cors';
+import connectDB from './config/db.js';
+import dotenv from "dotenv"
+import {authrouter} from './routes/authRoutes.js';
+import { ProjectRouter } from './routes/projectRoutes.js';
+
+dotenv.config()
 
 const port = process.env.PORT || 5000;
 
@@ -10,14 +14,18 @@ connectDB();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(json());
+app.use(urlencoded({ extended: false }));
 
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/projects', require('./routes/projectRoutes'));
+app.use('/api/auth', authrouter);
+app.use('/api/projects', ProjectRouter);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
+
+app.get('/',(req , res)=>{
+    res.send("Backend of PowerDrishti AI") ;
+})
 
 app.listen(port, () => console.log(`Server started on port ${port}`));

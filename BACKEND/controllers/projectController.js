@@ -1,5 +1,5 @@
-const asyncHandler = require('express-async-handler');
-const Project = require('../models/Project');
+import asyncHandler from 'express-async-handler';
+import {Project} from '../models/Project.js';
 
 // @desc    Create new project
 // @route   POST /api/projects
@@ -27,7 +27,7 @@ const createProject = asyncHandler(async (req, res) => {
         throw new Error('Please add all required fields');
     }
 
-    const project = await Project.create({
+    const project = await create({
         user: req.user.id,
         project_name,
         project_start_date,
@@ -51,11 +51,11 @@ const createProject = asyncHandler(async (req, res) => {
 // @route   GET /api/projects
 // @access  Private
 const getProjects = asyncHandler(async (req, res) => {
-    const projects = await Project.find({ user: req.user.id });
+    const projects = await find({ user: req.user.id });
     res.status(200).json(projects);
 });
 
-module.exports = {
+export  {
     createProject,
     getProjects,
 };
