@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
+import { Schema, model } from 'mongoose';
 
-const projectSchema = mongoose.Schema({
+const projectSchema = Schema({
     user: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         required: true,
         ref: 'User'
     },
@@ -127,4 +127,5 @@ const projectSchema = mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('Project', projectSchema);
+const Project = model('Project', projectSchema);
+export {Project}

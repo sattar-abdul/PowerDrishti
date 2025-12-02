@@ -10,6 +10,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { truckIcon } from "@/lib/mockData";
 import { useAuth } from "@/context/AuthContext";
+import { LOCAL_URL } from "@/api/api.js";
 
 // Indian Cities Coordinates
 const CITIES = {
@@ -135,7 +136,7 @@ export default function MaterialTracking() {
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/projects', {
+                const response = await fetch(`${LOCAL_URL}/api/projects`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

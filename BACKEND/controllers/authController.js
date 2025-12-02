@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const asyncHandler = require('express-async-handler');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import { genSalt, hash, compare} from 'bcryptjs';
+import asyncHandler from 'express-async-handler';
+import {User} from '../models/User.js'; 
 
 // @desc    Register new user
 // @route   POST /api/auth/register
@@ -23,8 +23,8 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const salt = await genSalt(10);
+    const hashedPassword = await hash(password, salt);
 
     // Create user
     const user = await User.create({
@@ -55,7 +55,7 @@ const loginUser = asyncHandler(async (req, res) => {
     // Check for user email
     const user = await User.findOne({ email });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && (await compare(password, user.password))) {
         res.json({
             _id: user.id,
             name: user.name,
@@ -82,7 +82,7 @@ const generateToken = (id) => {
     });
 };
 
-module.exports = {
+export  {
     registerUser,
     loginUser,
     getMe,
