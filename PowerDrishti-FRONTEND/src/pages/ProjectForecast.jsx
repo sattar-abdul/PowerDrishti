@@ -97,37 +97,19 @@ const ProjectForecast = () => {
                 throw new Error('Failed to save project');
             }
 
-            // Simulate AI processing delay after saving
-            setTimeout(() => {
-                setForecastResults({
-                    materials: [
-                        { material_name: "Steel (Towers)", quantity: 1200, unit: "Tons", confidence_percent: 92, min_quantity: 1100, max_quantity: 1300 },
-                        { material_name: "Conductor (ACSR)", quantity: 450, unit: "km", confidence_percent: 88, min_quantity: 420, max_quantity: 480 },
-                        { material_name: "Insulators (Polymer)", quantity: 3500, unit: "Nos", confidence_percent: 95, min_quantity: 3400, max_quantity: 3600 },
-                        { material_name: "Cement (Foundation)", quantity: 800, unit: "Bags", confidence_percent: 85, min_quantity: 750, max_quantity: 850 },
-                    ],
-                    total_carbon_kg: 450000,
-                    carbon_reduction_tips: [
-                        { tip: "Use recycled steel for tower structures", potential_reduction_percent: 15 },
-                        { tip: "Optimize route to reduce total line length", potential_reduction_percent: 8 },
-                        { tip: "Source cement from local green-certified suppliers", potential_reduction_percent: 5 }
-                    ],
-                    estimated_cost: formData.total_budget * 1.1, // Mock logic
-                    estimated_duration: `${formData.expected_completion_period} months`,
-                    risk_level: "Medium",
-                    risk_factors: [
-                        "Potential delays due to terrain difficulty in selected district.",
-                        "Steel price volatility could impact budget.",
-                        "Right-of-way clearances might take longer than expected."
-                    ],
-                    recommendations: [
-                        "Optimize tower type selection for cost savings.",
-                        "Consider alternate substation designs.",
-                        "Review terrain impact for logistics."
-                    ]
-                });
-                setIsProcessing(false);
-            }, 1500);
+            const data = await response.json();
+
+            setForecastResults({
+                materials: data.materials,
+                total_carbon_kg: data.total_carbon_kg || 0,
+                carbon_reduction_tips: data.carbon_reduction_tips || [],
+                estimated_cost: data.estimated_cost,
+                estimated_duration: data.estimated_duration,
+                risk_level: data.risk_level,
+                risk_factors: data.risk_factors || [],
+                recommendations: data.recommendations || []
+            });
+            setIsProcessing(false);
 
         } catch (error) {
             console.error(error);
@@ -455,135 +437,43 @@ const ProjectForecast = () => {
                 </CardContent>
             </Card>
 
-            {forecastResults && (
-                <>
-                    <Card className="bg-white border-slate-200">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Material Demand Forecast</CardTitle>
-                            <Button variant="outline" size="sm" onClick={() => setShowWhatIf(!showWhatIf)}>
-                                <Sliders className="w-4 h-4 mr-2" />
-                                What-If Analysis
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            {showWhatIf && (
-                                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                    <Label className="text-sm font-medium mb-2 block">
-                                        Adjust Budget: {whatIfBudget}% of original
-                                    </Label>
-                                    <Slider
-                                        value={[whatIfBudget]}
-                                        onValueChange={(value) => setWhatIfBudget(value[0])}
-                                        min={50}
-                                        max={150}
-                                        step={5}
-                                        className="mb-2"
-                                    />
-                                    <p className="text-xs text-blue-700">
-                                        This will adjust material quantities proportionally
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-slate-200">
-                                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Material</th>
-                                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Quantity</th>
-                                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Confidence</th>
-                                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Range</th>
+                        {forecastResults && (
+                <Card className="bg-white border-slate-200">
+                    <CardHeader className="border-b border-slate-200">
+                        <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-blue-600" />
+                            Material Demand Forecast
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-50 border-b border-slate-200">
+                                    <tr>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-700 w-12">#</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-700">Material Name</th>
+                                        <th className="text-right py-3 px-4 font-semibold text-slate-700">Required Quantity</th>
+                                        <th className="text-right py-3 px-4 font-semibold text-slate-700">Unit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {forecastResults.materials?.map((material, index) => (
+                                        <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                            <td className="py-3 px-4 text-slate-500 font-medium">{index + 1}</td>
+                                            <td className="py-3 px-4 font-medium text-slate-900">{material.material_name}</td>
+                                            <td className="text-right py-3 px-4 text-slate-700 font-semibold">
+                                                {material.quantity.toLocaleString()}
+                                            </td>
+                                            <td className="text-right py-3 px-4 text-slate-600">
+                                                {material.unit}
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {forecastResults.materials?.map((material, index) => {
-                                            const adjustedQty = showWhatIf
-                                                ? Math.round(material.quantity * (whatIfBudget / 100))
-                                                : material.quantity;
-                                            const adjustedMin = showWhatIf
-                                                ? Math.round(material.min_quantity * (whatIfBudget / 100))
-                                                : material.min_quantity;
-                                            const adjustedMax = showWhatIf
-                                                ? Math.round(material.max_quantity * (whatIfBudget / 100))
-                                                : material.max_quantity;
-
-                                            return (
-                                                <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                                                    <td className="py-3 px-4 font-medium text-slate-900">{material.material_name}</td>
-                                                    <td className="text-right py-3 px-4 text-slate-700">
-                                                        {adjustedQty.toLocaleString()} {material.unit}
-                                                    </td>
-                                                    <td className="text-right py-3 px-4">
-                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                                                            {material.confidence_percent}%
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="text-right py-3 px-4 text-sm text-slate-500">
-                                                        {adjustedMin.toLocaleString()} - {adjustedMax.toLocaleString()}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-linear-to-br from-green-50 to-emerald-50 border-green-200">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-green-900">
-                                <Leaf className="w-5 h-5" />
-                                Carbon Impact Analysis
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-700">Estimated Total Emissions:</span>
-                                    <span className="text-2xl font-bold text-green-900">
-                                        {(forecastResults.total_carbon_kg / 1000).toFixed(2)} tons CO₂
-                                    </span>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <h4 className="font-semibold text-green-900">Reduction Opportunities:</h4>
-                                    {forecastResults.carbon_reduction_tips?.map((tip, index) => (
-                                        <Alert key={index} className="bg-white border-green-300">
-                                            <Leaf className="h-4 w-4 text-green-600" />
-                                            <AlertDescription>
-                                                <strong>{tip.tip}</strong>
-                                                <br />
-                                                <span className="text-green-700">Potential reduction: {tip.potential_reduction_percent}%</span>
-                                            </AlertDescription>
-                                        </Alert>
                                     ))}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {forecastResults.risk_factors && forecastResults.risk_factors.length > 0 && (
-                        <Card className="bg-yellow-50 border-yellow-200">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-yellow-900">
-                                    <AlertCircle className="w-5 h-5" />
-                                    Risk Factors
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className="space-y-2">
-                                    {forecastResults.risk_factors.map((risk, index) => (
-                                        <li key={index} className="flex items-start gap-2">
-                                            <span className="text-yellow-600 mt-1">•</span>
-                                            <span className="text-slate-700">{risk}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    )}
-                </>
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );
