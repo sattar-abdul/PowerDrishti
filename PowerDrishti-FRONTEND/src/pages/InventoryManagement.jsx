@@ -120,7 +120,9 @@ const InventoryManagement = () => {
                     const line = lines[i].trim();
                     if (!line) continue;
 
-                    const [itemName, quantity, unit] = line.split(',').map(s => s.trim());
+                    // Parse CSV line properly, handling quoted values
+                    const values = line.split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+                    const [itemName, quantity, unit] = values;
 
                     if (itemName && quantity !== undefined) {
                         // Find matching item by name or update by index
@@ -157,6 +159,7 @@ const InventoryManagement = () => {
     const downloadTemplate = () => {
         if (!inventory) return;
 
+        // Create CSV content without extra quotes
         const csvContent = [
             ['Item Name', 'Quantity', 'Unit'],
             ...inventory.items.map(item => [item.item_name, item.quantity, item.unit])
