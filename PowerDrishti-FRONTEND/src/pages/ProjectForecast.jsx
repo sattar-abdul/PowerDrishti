@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LOCAL_URL } from "@/api/api";
 
 const ProjectForecast = () => {
     const { token } = useAuth();
@@ -18,7 +19,8 @@ const ProjectForecast = () => {
     const [forecastResults, setForecastResults] = useState(null);
     const [showWhatIf, setShowWhatIf] = useState(false);
     const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
-
+     console.log(`token is : ${token}`);
+    
     // PDF Upload State
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
@@ -82,7 +84,7 @@ const ProjectForecast = () => {
         setIsProcessing(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/projects', {
+            const response = await fetch(`${LOCAL_URL}/api/projects`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

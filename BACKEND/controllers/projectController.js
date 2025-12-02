@@ -27,7 +27,7 @@ const createProject = asyncHandler(async (req, res) => {
         throw new Error('Please add all required fields');
     }
 
-    const project = await create({
+    const project = await Project.create({
         user: req.user.id,
         project_name,
         project_start_date,
