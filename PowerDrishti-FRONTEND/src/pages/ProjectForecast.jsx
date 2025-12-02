@@ -19,7 +19,7 @@ const ProjectForecast = () => {
     const [forecastResults, setForecastResults] = useState(null);
     const [showWhatIf, setShowWhatIf] = useState(false);
     const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
-     console.log(`token is : ${token}`);
+     console.log(`token is : ${token}`); //just for test
     
     // PDF Upload State
     const [selectedPdf, setSelectedPdf] = useState(null);
