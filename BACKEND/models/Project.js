@@ -90,7 +90,11 @@ const projectSchema = mongoose.Schema({
         unit: String,
         confidence_percent: Number,
         min_quantity: Number,
-        max_quantity: Number
+        max_quantity: Number,
+        schedule: [{
+            month: Number,
+            quantity: Number
+        }]
     }],
     total_carbon_kg: {
         type: Number

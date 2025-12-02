@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const ProjectForecast = () => {
     const { token } = useAuth();
@@ -18,6 +19,7 @@ const ProjectForecast = () => {
     const [forecastResults, setForecastResults] = useState(null);
     const [showWhatIf, setShowWhatIf] = useState(false);
     const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
+    const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
 
     // PDF Upload State
     const [selectedPdf, setSelectedPdf] = useState(null);
@@ -95,37 +97,19 @@ const ProjectForecast = () => {
                 throw new Error('Failed to save project');
             }
 
-            // Simulate AI processing delay after saving
-            setTimeout(() => {
-                setForecastResults({
-                    materials: [
-                        { material_name: "Steel (Towers)", quantity: 1200, unit: "Tons", confidence_percent: 92, min_quantity: 1100, max_quantity: 1300 },
-                        { material_name: "Conductor (ACSR)", quantity: 450, unit: "km", confidence_percent: 88, min_quantity: 420, max_quantity: 480 },
-                        { material_name: "Insulators (Polymer)", quantity: 3500, unit: "Nos", confidence_percent: 95, min_quantity: 3400, max_quantity: 3600 },
-                        { material_name: "Cement (Foundation)", quantity: 800, unit: "Bags", confidence_percent: 85, min_quantity: 750, max_quantity: 850 },
-                    ],
-                    total_carbon_kg: 450000,
-                    carbon_reduction_tips: [
-                        { tip: "Use recycled steel for tower structures", potential_reduction_percent: 15 },
-                        { tip: "Optimize route to reduce total line length", potential_reduction_percent: 8 },
-                        { tip: "Source cement from local green-certified suppliers", potential_reduction_percent: 5 }
-                    ],
-                    estimated_cost: formData.total_budget * 1.1, // Mock logic
-                    estimated_duration: `${formData.expected_completion_period} months`,
-                    risk_level: "Medium",
-                    risk_factors: [
-                        "Potential delays due to terrain difficulty in selected district.",
-                        "Steel price volatility could impact budget.",
-                        "Right-of-way clearances might take longer than expected."
-                    ],
-                    recommendations: [
-                        "Optimize tower type selection for cost savings.",
-                        "Consider alternate substation designs.",
-                        "Review terrain impact for logistics."
-                    ]
-                });
-                setIsProcessing(false);
-            }, 1500);
+            const data = await response.json();
+
+            setForecastResults({
+                materials: data.materials,
+                total_carbon_kg: data.total_carbon_kg || 0,
+                carbon_reduction_tips: data.carbon_reduction_tips || [],
+                estimated_cost: data.estimated_cost,
+                estimated_duration: data.estimated_duration,
+                risk_level: data.risk_level,
+                risk_factors: data.risk_factors || [],
+                recommendations: data.recommendations || []
+            });
+            setIsProcessing(false);
 
         } catch (error) {
             console.error(error);
@@ -524,6 +508,57 @@ const ProjectForecast = () => {
                                         })}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            {/* Monthly Schedule Chart */}
+                            <div className="mt-8 border-t border-slate-200 pt-6">
+                                <h3 className="text-lg font-semibold text-slate-800 mb-4">Monthly Procurement Schedule</h3>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Projected material requirements per month based on project phase and terrain.
+                                </p>
+
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {forecastResults.materials?.map((mat, idx) => (
+                                        <Button
+                                            key={idx}
+                                            variant={selectedMaterialIndex === idx ? "default" : "outline"}
+                                            onClick={() => setSelectedMaterialIndex(idx)}
+                                            size="sm"
+                                            className={selectedMaterialIndex === idx ? "bg-blue-600 hover:bg-blue-700" : ""}
+                                        >
+                                            {mat.material_name}
+                                        </Button>
+                                    ))}
+                                </div>
+
+                                <div className="h-[350px] w-full bg-white p-4 rounded-lg border border-slate-200 shadow-xs">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={forecastResults.materials?.[selectedMaterialIndex]?.schedule}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                            <XAxis
+                                                dataKey="month"
+                                                label={{ value: 'Month', position: 'insideBottom', offset: -5 }}
+                                                tickLine={false}
+                                            />
+                                            <YAxis
+                                                label={{ value: `Quantity (${forecastResults.materials?.[selectedMaterialIndex]?.unit})`, angle: -90, position: 'insideLeft', offset: 10 }}
+                                                tickLine={false}
+                                                axisLine={false}
+                                            />
+                                            <RechartsTooltip
+                                                cursor={{ fill: '#f1f5f9' }}
+                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                            <Bar
+                                                dataKey="quantity"
+                                                fill="#3b82f6"
+                                                name="Quantity Needed"
+                                                radius={[4, 4, 0, 0]}
+                                                barSize={40}
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
