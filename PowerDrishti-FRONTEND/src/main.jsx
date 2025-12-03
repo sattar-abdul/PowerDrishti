@@ -13,6 +13,7 @@ import PrivateRoute from './components/PrivateRoute.jsx'
 import ProjectForecast from './pages/ProjectForecast.jsx'
 import Report from './pages/Report.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
+import MonthWiseForecast from './pages/MonthlyForecast'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -26,7 +27,9 @@ const router = createBrowserRouter(
         <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
         <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
-        <Route path="/forecast" element={<Layout><Report /></Layout>} />
+        <Route path="/report" element={<Layout><Report /></Layout>} />
+        <Route path="/monthly" element={<Layout><MonthWiseForecast /></Layout>} />
+        
       </Route>
     </Route>
   )
