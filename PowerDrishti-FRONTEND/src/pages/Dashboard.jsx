@@ -5,6 +5,7 @@ import DemandTrendChart from "../components/dashboard/DemandTrendChart";
 import CarbonBreakdownChart from "../components/dashboard/CarbonBreakdownChart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import DashboardProjectsCard from "@/components/dashboard/MaterialPrompt";
 import { dummyProjects, dummyMaterials, dummyCarbonData } from "@/lib/mockData";
 
 export default function Dashboard() {
@@ -115,7 +116,7 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white border-slate-200">
+                {/* <Card className="bg-white border-slate-200">
                     <CardHeader>
                         <CardTitle className="text-lg font-semibold text-slate-900">System Alerts</CardTitle>
                     </CardHeader>
@@ -144,7 +145,8 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> */}
+                <DashboardProjectsCard></DashboardProjectsCard>
             </div>
         </div>
     );

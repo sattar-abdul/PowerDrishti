@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3 } from "lucide-react";
+import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3,Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LOCAL_URL } from "@/api/api";
+
+
 
 const ProjectForecast = () => {
     const { token } = useAuth();
@@ -43,6 +45,10 @@ const ProjectForecast = () => {
         substation_type: "None",
         expected_towers: "",
         tower_types: [], // Array of strings
+        route_km: "", // Required for ML
+        avg_span_m: "300", // Default 300m, required for ML
+        num_circuits: "1", // Default 1, required for ML
+        no_of_bays: "0", // Required for ML
 
         // 4. Financial Inputs
         total_budget: "",
@@ -307,6 +313,47 @@ const ProjectForecast = () => {
                                                 placeholder="e.g., 150"
                                             />
                                         </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="route_km">Route Length (km) *</Label>
+                                            <Input
+                                                id="route_km"
+                                                type="number"
+                                                value={formData.route_km}
+                                                onChange={(e) => setFormData({ ...formData, route_km: e.target.value })}
+                                                placeholder="e.g., 120"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="avg_span_m">Average Span (m)</Label>
+                                            <Input
+                                                id="avg_span_m"
+                                                type="number"
+                                                value={formData.avg_span_m}
+                                                onChange={(e) => setFormData({ ...formData, avg_span_m: e.target.value })}
+                                                placeholder="Default: 300"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="num_circuits">Number of Circuits</Label>
+                                            <Input
+                                                id="num_circuits"
+                                                type="number"
+                                                value={formData.num_circuits}
+                                                onChange={(e) => setFormData({ ...formData, num_circuits: e.target.value })}
+                                                placeholder="Default: 1"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="no_of_bays">Number of Bays</Label>
+                                            <Input
+                                                id="no_of_bays"
+                                                type="number"
+                                                value={formData.no_of_bays}
+                                                onChange={(e) => setFormData({ ...formData, no_of_bays: e.target.value })}
+                                                placeholder="Default: 0"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -480,6 +527,20 @@ const ProjectForecast = () => {
                                     ))}
                                 </tbody>
                             </table>
+                             <div className="flex justify-end">
+          <Button
+            onClick={() => {
+              // Navigate to month-wise forecast page
+              // For now, we'll create a state to show the component inline
+              // You can also use router.push('/month-wise-forecast')
+              window.location.href = `/monthly`;
+            }}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Generate Month-wise Forecast & Order
+          </Button>
+        </div>
                         </div>
                     </CardContent>
                 </Card>

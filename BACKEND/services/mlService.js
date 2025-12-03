@@ -1,9 +1,8 @@
 import fetch from 'node-fetch';
 
-// Hugging Face ML Model Configuration
-const HF_API_URL = process.env.HF_API_URL || 'https://router.huggingface.co/models/Aunny/boq-forecast-xgb-33models';
-const HF_API_TOKEN = process.env.HF_API_TOKEN || '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';
-const USE_MOCK_ML = process.env.USE_MOCK_ML === 'true';
+// ML Model Configuration (Render Deployment)
+const ML_API_URL = process.env.ML_API_URL || 'https://boq-api.onrender.com/predict';
+const ML_API_TIMEOUT = parseInt(process.env.ML_API_TIMEOUT) || 60000; // 60 seconds for cold starts
 
 /**
  * Transform project data from frontend format to ML model input format
@@ -17,20 +16,18 @@ function transformToModelInput(projectData) {
         terrain_type,
         substation_type,
         total_budget,
-        tower_types
+        route_km,
+        avg_span_m,
+        num_circuits,
+        no_of_bays
     } = projectData;
 
     // Extract voltage value (e.g., "220kV" -> 220)
     const voltageMatch = line_voltage_level?.match(/(\d+)/);
     const voltage_kV = voltageMatch ? parseInt(voltageMatch[1]) : 220;
 
-    // Calculate route_km and avg_span_m based on tower count
+    // Use tower count from form
     const tower_count = parseInt(expected_towers) || 0;
-    const avg_span_m = 300; // Default average span
-    const route_km = tower_count > 0 ? (tower_count * avg_span_m) / 1000 : 0;
-
-    // Determine number of circuits based on tower types
-    const num_circuits = tower_types?.length > 0 ? tower_types.length : 1;
 
     // Map terrain type to lowercase
     const terrainMap = {
@@ -49,34 +46,20 @@ function transformToModelInput(projectData) {
         'Both': 'Transmission_Line'
     };
 
-    // Calculate logistics difficulty score (1-10 based on terrain)
-    const logisticsScoreMap = {
-        'plain': 2,
-        'hilly': 5,
-        'mountainous': 8,
-        'coastal': 4,
-        'desert': 6,
-        'forest': 7
-    };
-
     const terrain = terrainMap[terrain_type] || 'plain';
-    const logistics_difficulty_score = logisticsScoreMap[terrain] || 4;
-
-    // Determine bay count for substations
-    const no_of_bays = substation_type !== 'None' ? 4 : 0;
 
     return {
         project_type: projectTypeMap[project_type] || 'Transmission_Line',
         state: state_region || 'Bihar',
         voltage_kV,
-        route_km: Math.round(route_km),
-        avg_span_m,
+        route_km: parseInt(route_km) || 0,
+        avg_span_m: parseInt(avg_span_m) || 300,
         tower_count,
-        num_circuits,
+        num_circuits: parseInt(num_circuits) || 1,
         terrain_type: terrain,
-        logistics_difficulty_score,
+        logistics_difficulty_score: 4, // Hardcoded as requested
         substation_type: substation_type === 'None' ? 'None' : substation_type,
-        no_of_bays,
+        no_of_bays: parseInt(no_of_bays) || 0,
         project_budget_in_crores: parseFloat(total_budget) || 0
     };
 }
@@ -106,36 +89,48 @@ async function getPrediction(projectData) {
 
         console.log('Calling ML model with input:', modelInput);
 
-        // Call Hugging Face API
-        const response = await fetch(HF_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${HF_API_TOKEN}`
-            },
-            body: JSON.stringify(modelInput),
-            timeout: 30000 // 30 second timeout
-        });
+        // Call Render ML API with timeout handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), ML_API_TIMEOUT);
 
-        if (!response.ok) {
-            throw new Error(`ML API error: ${response.status} ${response.statusText}`);
+        try {
+            const response = await fetch(ML_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(modelInput),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`ML API error: ${response.status} ${response.statusText}`);
+            }
+
+            const modelResponse = await response.json();
+            console.log('ML model response received:', modelResponse);
+
+            // Transform output
+            const materials = transformModelOutput(modelResponse.prediction);
+
+            // Validate we have all 33 materials
+            if (materials.length !== 33) {
+                console.warn(`Expected 33 materials, got ${materials.length}`);
+            }
+
+            return {
+                materials,
+                source: 'ml_model'
+            };
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                throw new Error('ML API request timeout - model may be waking up from cold start');
+            }
+            throw fetchError;
         }
-
-        const modelResponse = await response.json();
-        console.log('ML model response received:', modelResponse);
-
-        // Transform output
-        const materials = transformModelOutput(modelResponse);
-
-        // Validate we have all 33 materials
-        if (materials.length !== 33) {
-            console.warn(`Expected 33 materials, got ${materials.length}`);
-        }
-
-        return {
-            materials,
-            source: 'ml_model'
-        };
 
     } catch (error) {
         console.error('ML Model Error:', error);
