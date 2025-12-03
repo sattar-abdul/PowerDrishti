@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3,Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3, Calendar } from "lucide-react";
 import { LOCAL_URL } from "@/api/api";
+
+
 
 const ProjectForecast = () => {
     const { token } = useAuth();
@@ -42,6 +45,10 @@ const ProjectForecast = () => {
         substation_type: "None",
         expected_towers: "",
         tower_types: [], // Array of strings
+        route_km: "", // Required for ML
+        avg_span_m: "300", // Default 300m, required for ML
+        num_circuits: "1", // Default 1, required for ML
+        no_of_bays: "0", // Required for ML
 
         // 4. Financial Inputs
         total_budget: "",
@@ -93,7 +100,8 @@ const ProjectForecast = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to save project');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to generate forecast');
             }
 
             const data = await response.json();
@@ -113,7 +121,15 @@ const ProjectForecast = () => {
         } catch (error) {
             console.error(error);
             setIsProcessing(false);
-            // Ideally show an error toast here
+            
+            // Parse error message from backend
+            let errorMessage = 'Failed to generate forecast. Please try again.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            // Show error to user
+            alert(`Error: ${errorMessage}`);
         }
     };
 
@@ -297,6 +313,47 @@ const ProjectForecast = () => {
                                                 placeholder="e.g., 150"
                                             />
                                         </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="route_km">Route Length (km) *</Label>
+                                            <Input
+                                                id="route_km"
+                                                type="number"
+                                                value={formData.route_km}
+                                                onChange={(e) => setFormData({ ...formData, route_km: e.target.value })}
+                                                placeholder="e.g., 120"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="avg_span_m">Average Span (m)</Label>
+                                            <Input
+                                                id="avg_span_m"
+                                                type="number"
+                                                value={formData.avg_span_m}
+                                                onChange={(e) => setFormData({ ...formData, avg_span_m: e.target.value })}
+                                                placeholder="Default: 300"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="num_circuits">Number of Circuits</Label>
+                                            <Input
+                                                id="num_circuits"
+                                                type="number"
+                                                value={formData.num_circuits}
+                                                onChange={(e) => setFormData({ ...formData, num_circuits: e.target.value })}
+                                                placeholder="Default: 1"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="no_of_bays">Number of Bays</Label>
+                                            <Input
+                                                id="no_of_bays"
+                                                type="number"
+                                                value={formData.no_of_bays}
+                                                onChange={(e) => setFormData({ ...formData, no_of_bays: e.target.value })}
+                                                placeholder="Default: 0"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -436,6 +493,58 @@ const ProjectForecast = () => {
                 </CardContent>
             </Card>
 
+                        {forecastResults && (
+                <Card className="bg-white border-slate-200">
+                    <CardHeader className="border-b border-slate-200">
+                        <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-blue-600" />
+                            Material Demand Forecast
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-50 border-b border-slate-200">
+                                    <tr>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-700 w-12">#</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-700">Material Name</th>
+                                        <th className="text-right py-3 px-4 font-semibold text-slate-700">Required Quantity</th>
+                                        <th className="text-right py-3 px-4 font-semibold text-slate-700">Unit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {forecastResults.materials?.map((material, index) => (
+                                        <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                            <td className="py-3 px-4 text-slate-500 font-medium">{index + 1}</td>
+                                            <td className="py-3 px-4 font-medium text-slate-900">{material.material_name}</td>
+                                            <td className="text-right py-3 px-4 text-slate-700 font-semibold">
+                                                {material.quantity.toLocaleString()}
+                                            </td>
+                                            <td className="text-right py-3 px-4 text-slate-600">
+                                                {material.unit}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                             <div className="flex justify-end">
+          <Button
+            onClick={() => {
+              // Navigate to month-wise forecast page
+              // For now, we'll create a state to show the component inline
+              // You can also use router.push('/month-wise-forecast')
+              window.location.href = `/monthly`;
+            }}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Generate Month-wise Forecast & Order
+          </Button>
+        </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
 
 {/* // Update the ProjectForecast component - Add this after the materials table */}

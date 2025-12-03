@@ -5,6 +5,7 @@ import DemandTrendChart from "../components/dashboard/DemandTrendChart";
 import CarbonBreakdownChart from "../components/dashboard/CarbonBreakdownChart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import DashboardProjectsCard from "@/components/dashboard/MaterialPrompt";
 import { dummyProjects, dummyMaterials, dummyCarbonData } from "@/lib/mockData";
 import DashboardProjectsCard from "@/components/dashboard/MaterialPrompt";
 
