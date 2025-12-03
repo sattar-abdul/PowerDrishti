@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3, Calendar } from "lucide-react";
 import { LOCAL_URL } from "@/api/api";
 
 
@@ -21,8 +22,8 @@ const ProjectForecast = () => {
     const [forecastResults, setForecastResults] = useState(null);
     const [showWhatIf, setShowWhatIf] = useState(false);
     const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
-     console.log(`token is : ${token}`);
-    
+    console.log(`token is : ${token}`); //just for test
+
     // PDF Upload State
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
@@ -545,6 +546,65 @@ const ProjectForecast = () => {
                     </CardContent>
                 </Card>
             )}
+
+
+{/* // Update the ProjectForecast component - Add this after the materials table */}
+{forecastResults && (
+  <>
+    <Card className="bg-white border-slate-200">
+      <CardHeader className="border-b border-slate-200">
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-600" />
+          Material Demand Forecast
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="text-left py-3 px-4 font-semibold text-slate-700 w-12">#</th>
+                <th className="text-left py-3 px-4 font-semibold text-slate-700">Material Name</th>
+                <th className="text-right py-3 px-4 font-semibold text-slate-700">Required Quantity</th>
+                <th className="text-right py-3 px-4 font-semibold text-slate-700">Unit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecastResults.materials?.map((material, index) => (
+                <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className="py-3 px-4 text-slate-500 font-medium">{index + 1}</td>
+                  <td className="py-3 px-4 font-medium text-slate-900">{material.material_name}</td>
+                  <td className="text-right py-3 px-4 text-slate-700 font-semibold">
+                    {material.quantity.toLocaleString()}
+                  </td>
+                  <td className="text-right py-3 px-4 text-slate-600">
+                    {material.unit}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* NEW BUTTON TO GENERATE MONTH-WISE FORECAST */}
+        <div className="flex justify-end">
+          <Button
+            onClick={() => {
+              // Navigate to month-wise forecast page
+              // For now, we'll create a state to show the component inline
+              // You can also use router.push('/month-wise-forecast')
+              window.location.href = `/monthly`;
+            }}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Generate Month-wise Forecast & Order
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  </>
+)}
         </div>
     );
 };

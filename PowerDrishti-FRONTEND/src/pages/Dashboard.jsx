@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import DashboardProjectsCard from "@/components/dashboard/MaterialPrompt";
 import { dummyProjects, dummyMaterials, dummyCarbonData } from "@/lib/mockData";
+import DashboardProjectsCard from "@/components/dashboard/MaterialPrompt";
 
 export default function Dashboard() {
     const [projects, setProjects] = useState([]);
