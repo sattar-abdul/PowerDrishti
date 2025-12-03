@@ -94,7 +94,8 @@ const ProjectForecast = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to save project');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to generate forecast');
             }
 
             const data = await response.json();
@@ -114,7 +115,15 @@ const ProjectForecast = () => {
         } catch (error) {
             console.error(error);
             setIsProcessing(false);
-            // Ideally show an error toast here
+            
+            // Parse error message from backend
+            let errorMessage = 'Failed to generate forecast. Please try again.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            // Show error to user
+            alert(`Error: ${errorMessage}`);
         }
     };
 

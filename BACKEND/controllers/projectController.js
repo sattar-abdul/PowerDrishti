@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import { Project } from '../models/Project.js';
+import * as mlService from '../services/mlService.js';
 
 // @desc    Create new project
 // @route   POST /api/projects
@@ -44,33 +45,22 @@ const createProject = asyncHandler(async (req, res) => {
         taxes_duty
     });
 
-    // Simulate ML Forecast (Internal JS Logic to mimic external API)
+    // Get ML Forecast from Hugging Face model
     try {
-        const forecastData = generateMockForecast({
-            project_type,
-            terrain_type,
-            total_budget,
-            expected_completion_period,
-            tower_types,
-            substation_type
-        });
+        console.log('Calling Hugging Face ML model for project:', project_name);
+        const forecastData = await mlService.getPrediction(req.body);
 
         if (forecastData.materials) {
             project.materials = forecastData.materials;
-            project.risk_level = forecastData.risk_level;
-            project.project_phase = forecastData.project_phase;
-            project.total_carbon_kg = forecastData.total_carbon_kg;
-            project.carbon_reduction_tips = forecastData.carbon_reduction_tips;
-            project.risk_factors = forecastData.risk_factors;
-            project.recommendations = forecastData.recommendations;
-            project.estimated_cost = forecastData.estimated_cost;
-            project.estimated_duration = forecastData.estimated_duration;
-
             await project.save();
+            console.log('ML forecast saved successfully');
         }
     } catch (error) {
         console.error('ML Forecast Error:', error);
-        // Continue without failing the request
+        // Delete the project since forecast failed
+        await Project.findByIdAndDelete(project._id);
+        res.status(500);
+        throw new Error(`Failed to generate forecast: ${error.message}`);
     }
 
     res.status(201).json(project);
