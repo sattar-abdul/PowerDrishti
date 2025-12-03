@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3, Calendar } from "lucide-react";
@@ -21,7 +20,7 @@ const ProjectForecast = () => {
     const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
     console.log(`token is : ${token}`); //just for test
 
-    // PDF Upload State
+    
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
     const [isUploadingPdf, setIsUploadingPdf] = useState(false);
