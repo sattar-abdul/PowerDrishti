@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import { Project } from '../models/Project.js';
+import { BOQ } from '../models/BOQ.js';
 import * as mlService from '../services/mlService.js';
 
 // @desc    Create new project
@@ -18,6 +19,10 @@ const createProject = asyncHandler(async (req, res) => {
         line_voltage_level,
         substation_type,
         expected_towers,
+        route_km,
+        avg_span_m,
+        num_circuits,
+        no_of_bays,
         total_budget,
         taxes_duty
     } = req.body;
@@ -41,19 +46,44 @@ const createProject = asyncHandler(async (req, res) => {
         line_voltage_level,
         substation_type,
         expected_towers,
+        route_km,
+        avg_span_m,
+        num_circuits,
+        no_of_bays,
         total_budget,
         taxes_duty
     });
 
-    // Get ML Forecast from Hugging Face model
+    // Get ML Forecast and create BOQ
     try {
-        console.log('Calling Hugging Face ML model for project:', project_name);
+        console.log('Calling ML model for project:', project_name);
         const forecastData = await mlService.getPrediction(req.body);
 
         if (forecastData.materials) {
-            project.materials = forecastData.materials;
-            await project.save();
-            console.log('ML forecast saved successfully');
+            // Create BOQ entry
+            const boq = await BOQ.create({
+                project: project._id,
+                materials: forecastData.materials,
+                input_parameters: {
+                    project_type,
+                    state: state_region,
+                    voltage_kV: parseInt(line_voltage_level?.match(/(\d+)/)?.[1]) || 220,
+                    route_km: parseInt(route_km) || 0,
+                    avg_span_m: parseInt(avg_span_m) || 300,
+                    tower_count: parseInt(expected_towers) || 0,
+                    num_circuits: parseInt(num_circuits) || 1,
+                    terrain_type,
+                    logistics_difficulty_score: 4,
+                    substation_type,
+                    no_of_bays: parseInt(no_of_bays) || 0,
+                    project_budget_in_crores: parseFloat(total_budget) || 0
+                }
+            });
+            console.log('BOQ created successfully:', boq._id);
+
+            // Return project with BOQ
+            res.status(201).json({ project, boq });
+            return;
         }
     } catch (error) {
         console.error('ML Forecast Error:', error);
@@ -63,7 +93,7 @@ const createProject = asyncHandler(async (req, res) => {
         throw new Error(`Failed to generate forecast: ${error.message}`);
     }
 
-    res.status(201).json(project);
+    res.status(201).json({ project });
 });
 
 // @desc    Get user projects

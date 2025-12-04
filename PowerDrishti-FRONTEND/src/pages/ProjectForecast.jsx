@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3,Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,12 +14,48 @@ import { LOCAL_URL } from "@/api/api";
 
 
 const ProjectForecast = () => {
+    const states = [
+        "Andhra Pradesh",
+        "Arunachal Pradesh",
+        "Assam",
+        "Bihar",
+        "Chhattisgarh",
+        "Goa",
+        "Gujarat",
+        "Haryana",
+        "Himachal Pradesh",
+        "Jharkhand",
+        "Karnataka",
+        "Kerala",
+        "Madhya Pradesh",
+        "Maharashtra",
+        "Manipur",
+        "Meghalaya",
+        "Mizoram",
+        "Nagaland",
+        "Odisha",
+        "Punjab",
+        "Rajasthan",
+        "Sikkim",
+        "Tamil Nadu",
+        "Telangana",
+        "Tripura",
+        "Uttar Pradesh",
+        "Uttarakhand",
+        "West Bengal",
+        "Andaman and Nicobar Islands",
+        "Chandigarh",
+        "Dadra and Nagar Haveli...",
+        "Delhi",
+        "Jammu and Kashmir",
+        "Ladakh",
+        "Lakshadweep",
+        "Puducherry",
+    ]; // all states + UTs
     const { token } = useAuth();
     const [inputMode, setInputMode] = useState("form"); // "form" or "pdf"
     const [isProcessing, setIsProcessing] = useState(false);
     const [forecastResults, setForecastResults] = useState(null);
-    const [showWhatIf, setShowWhatIf] = useState(false);
-    const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
     console.log(`token is : ${token}`); //just for test
 
     
@@ -107,27 +142,21 @@ const ProjectForecast = () => {
             const data = await response.json();
 
             setForecastResults({
-                materials: data.materials,
-                total_carbon_kg: data.total_carbon_kg || 0,
-                carbon_reduction_tips: data.carbon_reduction_tips || [],
-                estimated_cost: data.estimated_cost,
-                estimated_duration: data.estimated_duration,
-                risk_level: data.risk_level,
-                risk_factors: data.risk_factors || [],
-                recommendations: data.recommendations || []
+                materials: data.boq?.materials || [],
+                project: data.project
             });
             setIsProcessing(false);
 
         } catch (error) {
             console.error(error);
             setIsProcessing(false);
-            
+
             // Parse error message from backend
             let errorMessage = 'Failed to generate forecast. Please try again.';
             if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             // Show error to user
             alert(`Error: ${errorMessage}`);
         }
@@ -215,20 +244,18 @@ const ProjectForecast = () => {
                                     <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">2. Geographic & Site Information</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <div className="space-y-2">
-                                            <Label htmlFor="state_region">State / Region *</Label>
+                                            <Label htmlFor="state_region">State / UT *</Label>
                                             <Select value={formData.state_region} onValueChange={(value) => setFormData({ ...formData, state_region: value })}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select State" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Delhi">Delhi</SelectItem>
-                                                    <SelectItem value="Maharashtra">Maharashtra</SelectItem>
-                                                    <SelectItem value="Karnataka">Karnataka</SelectItem>
-                                                    <SelectItem value="Gujarat">Gujarat</SelectItem>
-                                                    <SelectItem value="Tamil Nadu">Tamil Nadu</SelectItem>
-                                                    {/* Add more states as needed */}
+                                                    {states.map((state) => (
+                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
+
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="district">District *</Label>
@@ -250,8 +277,8 @@ const ProjectForecast = () => {
                                                     <SelectItem value="Plain">Plain</SelectItem>
                                                     <SelectItem value="Hilly">Hilly</SelectItem>
                                                     <SelectItem value="Coastal">Coastal</SelectItem>
-                                                    <SelectItem value="Desert">Desert</SelectItem>
-                                                    <SelectItem value="Forest">Forest</SelectItem>
+                                                    <SelectItem value="Desert" disabled>Desert</SelectItem>
+                                                    <SelectItem value="Forest" disabled>Forest</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -282,7 +309,6 @@ const ProjectForecast = () => {
                                                     <SelectValue placeholder="Select Voltage" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="66kV">66kV</SelectItem>
                                                     <SelectItem value="132kV">132kV</SelectItem>
                                                     <SelectItem value="220kV">220kV</SelectItem>
                                                     <SelectItem value="400kV">400kV</SelectItem>
@@ -359,7 +385,7 @@ const ProjectForecast = () => {
                                     <div className="space-y-2">
                                         <Label>Tower Types (Multi-select)</Label>
                                         <div className="flex flex-wrap gap-2">
-                                            {['Type A', 'Type B', 'Type C', 'Type D', 'Special'].map(type => (
+                                            {['Type A', 'Type B', 'Type C', 'Type D', 'Type E', 'Special'].map(type => (
                                                 <Badge
                                                     key={type}
                                                     variant={formData.tower_types?.includes(type) ? "default" : "outline"}
@@ -493,7 +519,7 @@ const ProjectForecast = () => {
                 </CardContent>
             </Card>
 
-                        {forecastResults && (
+            {forecastResults && (
                 <Card className="bg-white border-slate-200">
                     <CardHeader className="border-b border-slate-200">
                         <CardTitle className="flex items-center gap-2">
@@ -527,83 +553,83 @@ const ProjectForecast = () => {
                                     ))}
                                 </tbody>
                             </table>
-                             <div className="flex justify-end">
-          <Button
-            onClick={() => {
-              // Navigate to month-wise forecast page
-              // For now, we'll create a state to show the component inline
-              // You can also use router.push('/month-wise-forecast')
-              window.location.href = `/monthly`;
-            }}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Generate Month-wise Forecast & Order
-          </Button>
-        </div>
+                            <div className="flex justify-end">
+                                <Button
+                                    onClick={() => {
+                                        // Navigate to month-wise forecast page
+                                        // For now, we'll create a state to show the component inline
+                                        // You can also use router.push('/month-wise-forecast')
+                                        window.location.href = `/monthly`;
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700"
+                                >
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    Generate Month-wise Forecast & Order
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             )}
 
 
-{/* // Update the ProjectForecast component - Add this after the materials table */}
-{forecastResults && (
-  <>
-    <Card className="bg-white border-slate-200">
-      <CardHeader className="border-b border-slate-200">
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-600" />
-          Material Demand Forecast
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="overflow-x-auto mb-6">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-left py-3 px-4 font-semibold text-slate-700 w-12">#</th>
-                <th className="text-left py-3 px-4 font-semibold text-slate-700">Material Name</th>
-                <th className="text-right py-3 px-4 font-semibold text-slate-700">Required Quantity</th>
-                <th className="text-right py-3 px-4 font-semibold text-slate-700">Unit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {forecastResults.materials?.map((material, index) => (
-                <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="py-3 px-4 text-slate-500 font-medium">{index + 1}</td>
-                  <td className="py-3 px-4 font-medium text-slate-900">{material.material_name}</td>
-                  <td className="text-right py-3 px-4 text-slate-700 font-semibold">
-                    {material.quantity.toLocaleString()}
-                  </td>
-                  <td className="text-right py-3 px-4 text-slate-600">
-                    {material.unit}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* NEW BUTTON TO GENERATE MONTH-WISE FORECAST */}
-        <div className="flex justify-end">
-          <Button
-            onClick={() => {
-              // Navigate to month-wise forecast page
-              // For now, we'll create a state to show the component inline
-              // You can also use router.push('/month-wise-forecast')
-              window.location.href = `/monthly`;
-            }}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Generate Month-wise Forecast & Order
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  </>
-)}
+            {/* // Update the ProjectForecast component - Add this after the materials table */}
+            {forecastResults && (
+                <>
+                    <Card className="bg-white border-slate-200">
+                        <CardHeader className="border-b border-slate-200">
+                            <CardTitle className="flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-blue-600" />
+                                Material Demand Forecast
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="overflow-x-auto mb-6">
+                                <table className="w-full">
+                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                        <tr>
+                                            <th className="text-left py-3 px-4 font-semibold text-slate-700 w-12">#</th>
+                                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Material Name</th>
+                                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Required Quantity</th>
+                                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Unit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {forecastResults.materials?.map((material, index) => (
+                                            <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                <td className="py-3 px-4 text-slate-500 font-medium">{index + 1}</td>
+                                                <td className="py-3 px-4 font-medium text-slate-900">{material.material_name}</td>
+                                                <td className="text-right py-3 px-4 text-slate-700 font-semibold">
+                                                    {material.quantity.toLocaleString()}
+                                                </td>
+                                                <td className="text-right py-3 px-4 text-slate-600">
+                                                    {material.unit}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* NEW BUTTON TO GENERATE MONTH-WISE FORECAST */}
+                            <div className="flex justify-end">
+                                <Button
+                                    onClick={() => {
+                                        // Navigate to month-wise forecast page
+                                        // For now, we'll create a state to show the component inline
+                                        // You can also use router.push('/month-wise-forecast')
+                                        window.location.href = `/monthly`;
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700"
+                                >
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    Generate Month-wise Forecast & Order
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </>
+            )}
         </div>
     );
 };
