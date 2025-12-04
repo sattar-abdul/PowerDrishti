@@ -11,7 +11,8 @@ import {
     Menu,
     X,
     LogOut,
-    Package
+    Package,
+    ListChecks
 } from "lucide-react";
 import {
     Sidebar,
@@ -40,6 +41,11 @@ const navigationItems = [
         title: "Project Forecast",
         url: "/forecast",
         icon: LineChart,
+    },
+    {
+        title: "Predicted Materials",
+        url: "/predicted-materials",
+        icon: ListChecks,
     },
     {
         title: "Inventory Analyzer",
