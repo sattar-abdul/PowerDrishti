@@ -5,9 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3,Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, TrendingUp, Leaf, AlertCircle, Sliders, Upload, FileText, X, FileUp, Edit3, Calendar } from "lucide-react";
@@ -20,8 +18,6 @@ const ProjectForecast = () => {
     const [inputMode, setInputMode] = useState("form"); // "form" or "pdf"
     const [isProcessing, setIsProcessing] = useState(false);
     const [forecastResults, setForecastResults] = useState(null);
-    const [showWhatIf, setShowWhatIf] = useState(false);
-    const [whatIfBudget, setWhatIfBudget] = useState(100); // Percentage
     console.log(`token is : ${token}`); //just for test
 
     // PDF Upload State
@@ -108,14 +104,8 @@ const ProjectForecast = () => {
             const data = await response.json();
 
             setForecastResults({
-                materials: data.materials,
-                total_carbon_kg: data.total_carbon_kg || 0,
-                carbon_reduction_tips: data.carbon_reduction_tips || [],
-                estimated_cost: data.estimated_cost,
-                estimated_duration: data.estimated_duration,
-                risk_level: data.risk_level,
-                risk_factors: data.risk_factors || [],
-                recommendations: data.recommendations || []
+                materials: data.boq?.materials || [],
+                project: data.project
             });
             setIsProcessing(false);
 

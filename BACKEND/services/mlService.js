@@ -79,9 +79,7 @@ function transformModelOutput(modelResponse) {
     }));
 }
 
-/**
- * Call Hugging Face ML model for BOQ prediction
- */
+
 async function getPrediction(projectData) {
     try {
         // Transform input data

@@ -5,6 +5,7 @@ import dotenv from "dotenv"
 import { authrouter } from './routes/authRoutes.js';
 import { ProjectRouter } from './routes/projectRoutes.js';
 import { InventoryRouter } from './routes/inventoryRoutes.js';
+import { BOQRouter } from './routes/boqRoutes.js';
 
 dotenv.config()
 
@@ -21,6 +22,7 @@ app.use(urlencoded({ extended: false }));
 app.use('/api/auth', authrouter);
 app.use('/api/projects', ProjectRouter);
 app.use('/api/inventory', InventoryRouter);
+app.use('/api/boq', BOQRouter);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });

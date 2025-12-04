@@ -31,10 +31,9 @@ const projectSchema = Schema({
     },
     terrain_type: {
         type: String,
-        enum: ['Plain', 'Hilly', 'Forest', 'Coastal', 'Urban Dense'],
+        enum: ['Plain', 'Hilly', 'Forest', 'Coastal', 'Urban Dense', 'Mountainous', 'Desert'],
         required: [true, 'Please select a terrain type']
     },
-    // accessibility_difficulty removed as per request
 
     // 3. Technical Fields
     project_type: {
@@ -43,7 +42,7 @@ const projectSchema = Schema({
         required: [true, 'Please select a project type']
     },
     tower_types: {
-        type: [String], // Multi-select
+        type: [String],
         default: []
     },
     line_voltage_level: {
@@ -53,10 +52,26 @@ const projectSchema = Schema({
     },
     substation_type: {
         type: String,
-        enum: ['AIS', 'GIS', 'Hybrid', 'None'], // Added None for Transmission Line only projects
+        enum: ['AIS', 'GIS', 'Hybrid', 'None'],
         default: 'None'
     },
     expected_towers: {
+        type: Number,
+        default: 0
+    },
+    route_km: {
+        type: Number,
+        default: 0
+    },
+    avg_span_m: {
+        type: Number,
+        default: 300
+    },
+    num_circuits: {
+        type: Number,
+        default: 1
+    },
+    no_of_bays: {
         type: Number,
         default: 0
     },
@@ -67,65 +82,12 @@ const projectSchema = Schema({
         required: [true, 'Please add total budget']
     },
     taxes_duty: {
-        type: Number, // Percentage or absolute value? User said "Dropdown or Number", assuming percentage for now based on previous "tax_percentage"
+        type: Number,
         default: 0
-    },
-
-    // ML Forecast Results (kept from previous version)
-    estimated_cost: {
-        type: Number
-    },
-    estimated_duration: {
-        type: String
-    },
-    risk_level: {
-        type: String
-    },
-    recommendations: {
-        type: [String]
-    },
-    materials: [{
-        material_name: String,
-        quantity: Number,
-        unit: String,
-        confidence_percent: Number,
-        min_quantity: Number,
-        max_quantity: Number,
-        schedule: [{
-            month: Number,
-            quantity: Number
-        }]
-    }],
-    total_carbon_kg: {
-        type: Number
-    },
-    carbon_reduction_tips: [{
-        tip: String,
-        potential_reduction_percent: Number
-    }],
-    risk_factors: {
-        type: [String]
-    },
-
-    // New ML Prediction Fields
-    project_phase: {
-        type: String
-    },
-    procurement_status: {
-        type: String
-    },
-    onhand_quantity: {
-        type: Number
-    },
-    budget_per_month: {
-        type: Number
-    },
-    material_code: {
-        type: [String]
     }
 }, {
     timestamps: true
 });
 
 const Project = model('Project', projectSchema);
-export {Project}
+export { Project };
