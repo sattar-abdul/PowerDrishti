@@ -58,7 +58,7 @@ const ProjectForecast = () => {
     const [forecastResults, setForecastResults] = useState(null);
     console.log(`token is : ${token}`); //just for test
 
-    // PDF Upload State
+    
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
     const [isUploadingPdf, setIsUploadingPdf] = useState(false);
