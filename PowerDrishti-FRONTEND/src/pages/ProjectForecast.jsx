@@ -58,7 +58,7 @@ const ProjectForecast = () => {
     const [forecastResults, setForecastResults] = useState(null);
     console.log(`token is : ${token}`); //just for test
 
-    
+
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
     const [isUploadingPdf, setIsUploadingPdf] = useState(false);
@@ -140,6 +140,7 @@ const ProjectForecast = () => {
             }
 
             const data = await response.json();
+            console.log(data);
 
             setForecastResults({
                 materials: data.boq?.materials || [],
@@ -559,7 +560,9 @@ const ProjectForecast = () => {
                                         // Navigate to month-wise forecast page
                                         // For now, we'll create a state to show the component inline
                                         // You can also use router.push('/month-wise-forecast')
-                                        window.location.href = `/monthly`;
+                                        const projectId = forecastResults.project?._id || forecastResults.project?.id;
+                                        console.log('Project ID:', projectId, 'Full project:', forecastResults.project);
+                                        window.location.href = `/monthly/${projectId}`;
                                     }}
                                     className="bg-green-600 hover:bg-green-700"
                                 >
@@ -618,7 +621,9 @@ const ProjectForecast = () => {
                                         // Navigate to month-wise forecast page
                                         // For now, we'll create a state to show the component inline
                                         // You can also use router.push('/month-wise-forecast')
-                                        window.location.href = `/monthly`;
+                                        const projectId = forecastResults.project?._id || forecastResults.project?.id;
+                                        console.log('Project ID:', projectId, 'Full project:', forecastResults.project);
+                                        window.location.href = `/monthly/${projectId}`;
                                     }}
                                     className="bg-green-600 hover:bg-green-700"
                                 >

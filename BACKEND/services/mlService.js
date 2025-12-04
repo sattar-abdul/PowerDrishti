@@ -19,7 +19,8 @@ function transformToModelInput(projectData) {
         route_km,
         avg_span_m,
         num_circuits,
-        no_of_bays
+        no_of_bays,
+        expected_completion_period
     } = projectData;
 
     // Extract voltage value (e.g., "220kV" -> 220)
@@ -60,7 +61,8 @@ function transformToModelInput(projectData) {
         logistics_difficulty_score: 4, // Hardcoded as requested
         substation_type: substation_type === 'None' ? 'None' : substation_type,
         no_of_bays: parseInt(no_of_bays) || 0,
-        project_budget_in_crores: parseFloat(total_budget) || 0
+        project_budget_in_crores: parseFloat(total_budget) || 0,
+        months: parseInt(expected_completion_period) || 12
     };
 }
 
@@ -110,8 +112,8 @@ async function getPrediction(projectData) {
             const modelResponse = await response.json();
             console.log('ML model response received:', modelResponse);
 
-            // Transform output
-            const materials = transformModelOutput(modelResponse.prediction);
+            // Transform total BOQ output
+            const materials = transformModelOutput(modelResponse.total_boq);
 
             // Validate we have all 33 materials
             if (materials.length !== 33) {
@@ -120,6 +122,8 @@ async function getPrediction(projectData) {
 
             return {
                 materials,
+                monthly_boq: modelResponse.monthly_boq || [],
+                total_months: modelResponse.months || 12,
                 source: 'ml_model'
             };
         } catch (fetchError) {

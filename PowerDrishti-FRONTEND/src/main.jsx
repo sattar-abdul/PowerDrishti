@@ -30,7 +30,7 @@ const router = createBrowserRouter(
         <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
         <Route path="/report" element={<Layout><Report /></Layout>} />
-        <Route path="/monthly" element={<Layout><MonthWiseForecast /></Layout>} />
+        <Route path="/monthly/:projectId" element={<Layout><MonthWiseForecast /></Layout>} />
         <Route path="/predicted-materials" element={<Layout><BOQViewer /></Layout>} />
       </Route>
     </Route>

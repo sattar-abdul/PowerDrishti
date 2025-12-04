@@ -205,127 +205,124 @@ const PredictedMaterialsViewer = () => {
 
                     {selectedProjectData && (
                         <div className="">
-                        <Card className="bg-white border-slate-200">
-                            <CardHeader className="border-b border-slate-200">
-                                <CardTitle className="flex items-center gap-2">
-                                    <Info className="w-5 h-5 text-purple-600" />
-                                    ML Parameters
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="space-y-6">
-                                    {/* Project Information */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Project Information</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-sm text-slate-500">Project Name</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.project_name}</p>
+                            <Card className="bg-white border-slate-200">
+                                <CardHeader className="border-b border-slate-200">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Info className="w-5 h-5 text-purple-600" />
+                                        ML Parameters
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <div className="space-y-6">
+                                        {/* Project Information */}
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Project Information</h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Project Name</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.project_name}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Start Date</p>
+                                                    <p className="font-medium text-slate-900">
+                                                        {new Date(selectedProjectData.project_start_date).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Completion Period</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.expected_completion_period} months</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Start Date</p>
-                                                <p className="font-medium text-slate-900">
-                                                    {new Date(selectedProjectData.project_start_date).toLocaleDateString()}
-                                                </p>
+                                        </div>
+
+                                        {/* Geographic Information */}
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Geographic & Site Information</h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <p className="text-sm text-slate-500">State/Region</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.state_region}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">District</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.district}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Terrain Type</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.terrain_type}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Completion Period</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.expected_completion_period} months</p>
+                                        </div>
+
+                                        {/* Technical Fields */}
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Technical Specifications</h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Project Type</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.project_type}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Voltage Level</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.line_voltage_level}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Substation Type</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.substation_type}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Expected Towers</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.expected_towers}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Route Length</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.route_km} km</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Average Span</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.avg_span_m} m</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Number of Circuits</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.num_circuits}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Number of Bays</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.no_of_bays}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Financial Information */}
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Financial Information</h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Total Budget</p>
+                                                    <p className="font-medium text-slate-900">₹{selectedProjectData.total_budget} Crores</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-slate-500">Taxes & Duty</p>
+                                                    <p className="font-medium text-slate-900">{selectedProjectData.taxes_duty}%</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                </CardContent>
+                            </Card>
 
-                                    {/* Geographic Information */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Geographic & Site Information</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-sm text-slate-500">State/Region</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.state_region}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">District</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.district}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Terrain Type</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.terrain_type}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Technical Fields */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Technical Specifications</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            <div>
-                                                <p className="text-sm text-slate-500">Project Type</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.project_type}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Voltage Level</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.line_voltage_level}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Substation Type</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.substation_type}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Expected Towers</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.expected_towers}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Route Length</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.route_km} km</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Average Span</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.avg_span_m} m</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Number of Circuits</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.num_circuits}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Number of Bays</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.no_of_bays}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Financial Information */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">Financial Information</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-sm text-slate-500">Total Budget</p>
-                                                <p className="font-medium text-slate-900">₹{selectedProjectData.total_budget} Crores</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-slate-500">Taxes & Duty</p>
-                                                <p className="font-medium text-slate-900">{selectedProjectData.taxes_duty}%</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-<div className="flex justify-end">
-<Button
-    onClick={() => {
-        // Navigate to month-wise forecast page
-        // For now, we'll create a state to show the component inline
-        // You can also use router.push('/month-wise-forecast')
-        window.location.href = `/monthly`;
-    }}
-    className="bg-green-600 hover:bg-green-700"
->
-    <Calendar className="w-4 h-4 mr-2" />
-    Generate Month-wise Forecast & Order
-</Button>
-</div>
-</div>
+                            <div className="flex justify-end">
+                                <Button
+                                    onClick={() => {
+                                        window.location.href = `/monthly/${selectedProject}`;
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700"
+                                >
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    Generate Month-wise Forecast & Order
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </>
             )}

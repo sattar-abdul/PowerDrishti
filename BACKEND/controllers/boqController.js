@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import { BOQ } from '../models/BOQ.js';
+import { MonthlyBOQ } from '../models/MonthlyBOQ.js';
 import { Project } from '../models/Project.js';
 
 // @desc    Get BOQ for a specific project
@@ -26,6 +27,32 @@ const getBOQByProject = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(boq);
+});
+
+// @desc    Get monthly BOQ for a specific project
+// @route   GET /api/boq/monthly/:projectId
+// @access  Private
+const getMonthlyBOQByProject = asyncHandler(async (req, res) => {
+    const monthlyBOQ = await MonthlyBOQ.findOne({ project: req.params.projectId }).populate('project', 'project_name');
+
+    if (!monthlyBOQ) {
+        res.status(404);
+        throw new Error('Monthly BOQ not found for this project');
+    }
+
+    // Verify the project belongs to the user
+    const project = await Project.findById(req.params.projectId);
+    if (!project) {
+        res.status(404);
+        throw new Error('Project not found');
+    }
+
+    if (project.user.toString() !== req.user.id) {
+        res.status(401);
+        throw new Error('User not authorized');
+    }
+
+    res.status(200).json(monthlyBOQ);
 });
 
 // @desc    Get all BOQs for user's projects
@@ -72,6 +99,7 @@ const deleteBOQ = asyncHandler(async (req, res) => {
 
 export {
     getBOQByProject,
+    getMonthlyBOQByProject,
     getAllBOQs,
     deleteBOQ
 };

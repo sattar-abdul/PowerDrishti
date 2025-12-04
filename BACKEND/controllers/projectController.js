@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import { Project } from '../models/Project.js';
 import { BOQ } from '../models/BOQ.js';
+import { MonthlyBOQ } from '../models/MonthlyBOQ.js';
 import * as mlService from '../services/mlService.js';
 
 // @desc    Create new project
@@ -60,7 +61,7 @@ const createProject = asyncHandler(async (req, res) => {
         const forecastData = await mlService.getPrediction(req.body);
 
         if (forecastData.materials) {
-            // Create BOQ entry
+            // Create total BOQ entry
             const boq = await BOQ.create({
                 project: project._id,
                 materials: forecastData.materials,
@@ -80,6 +81,29 @@ const createProject = asyncHandler(async (req, res) => {
                 }
             });
             console.log('BOQ created successfully:', boq._id);
+
+            // Create monthly BOQ entry if monthly data exists
+            if (forecastData.monthly_boq && forecastData.monthly_boq.length > 0) {
+                const monthlyBreakdown = forecastData.monthly_boq.map(monthData => {
+                    // Convert month data to Map format (excluding the Month field)
+                    const { Month, ...materials } = monthData;
+                    return {
+                        month: Month,
+                        materials: new Map(Object.entries(materials))
+                    };
+                });
+
+                const monthlyBOQ = await MonthlyBOQ.create({
+                    project: project._id,
+                    total_months: forecastData.total_months,
+                    monthly_breakdown: monthlyBreakdown
+                });
+                console.log('Monthly BOQ created successfully:', monthlyBOQ._id);
+
+                // Return project with both BOQs
+                res.status(201).json({ project, boq, monthlyBOQ });
+                return;
+            }
 
             // Return project with BOQ
             res.status(201).json({ project, boq });

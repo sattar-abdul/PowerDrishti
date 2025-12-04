@@ -1,64 +1,92 @@
 // MonthWiseForecast.jsx
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle, Clock, AlertTriangle, Download, ShoppingCart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LOCAL_URL } from "@/api/api";
 
 const MonthWiseForecast = () => {
-    const location = useLocation();
+    const { projectId } = useParams();
+    const { token } = useAuth();
     const [projectName, setProjectName] = useState("");
     const [forecastData, setForecastData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("schedule");
 
     useEffect(() => {
-        // Extract project name from URL
-        const params = new URLSearchParams(location.search);
-        const project = params.get('project') || "Sample Project";
-        setProjectName(project);
+        if (projectId) {
+            fetchMonthlyBOQ();
+        }
+    }, [projectId]);
 
-        // Generate dummy month-wise forecast data
-        generateDummyForecastData(project);
-    }, [location]);
-
-    const generateDummyForecastData = (projectName) => {
+    const fetchMonthlyBOQ = async () => {
         setIsLoading(true);
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/boq/monthly/${projectId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-        // Sample materials for the project
-        const materials = [
-            { id: 1, name: "Steel Cables", unit: "meters" },
-            { id: 2, name: "Concrete", unit: "cubic meters" },
-            { id: 3, name: "Copper Wires", unit: "kg" },
-            { id: 4, name: "Insulators", unit: "pieces" },
-            { id: 5, name: "Transformer Oil", unit: "liters" },
-        ];
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Monthly BOQ data:', data);
 
-        // Generate 12 months of forecast
-        const months = [
-            "Month 1", "Month 2", "Month 3", "Month 4", "Month 5", "Month 6",
-            "Month 7", "Month 8", "Month 9", "Month 10", "Month 11", "Month 12"
-        ];
+                // Set project name
+                setProjectName(data.project?.project_name || "Project");
 
-        const dummyData = months.map((month, monthIndex) => ({
-            month,
-            monthNumber: monthIndex + 1,
-            materials: materials.map(material => ({
-                ...material,
-                quantity: Math.floor(Math.random() * 1000) + 500,
-                ordered: Math.random() > 0.5, // Randomly set ordered status
-                orderDate: Math.random() > 0.5 ? new Date(Date.now() - Math.random() * 10000000000).toLocaleDateString() : null,
-                deliveryStatus: Math.random() > 0.5 ? "Delivered" : Math.random() > 0.5 ? "In Transit" : "Pending"
-            })),
-            overallStatus: Math.random() > 0.7 ? "Ordered" : Math.random() > 0.5 ? "Partially Ordered" : "Not Ordered",
-            priority: Math.random() > 0.8 ? "High" : Math.random() > 0.5 ? "Medium" : "Low"
-        }));
+                // Transform monthly_breakdown to forecastData format
+                const transformedData = data.monthly_breakdown.map((monthData) => {
+                    // Convert Map to array of materials
+                    const materialsArray = Object.entries(monthData.materials).map(([name, quantity]) => ({
+                        id: name,
+                        name: name.replace(/_/g, ' '),
+                        quantity: quantity,
+                        unit: getUnitFromMaterialName(name),
+                        ordered: false,
+                        orderDate: null,
+                        deliveryStatus: "Pending"
+                    }));
 
-        setForecastData(dummyData);
-        setIsLoading(false);
+                    return {
+                        month: `Month ${monthData.month}`,
+                        monthNumber: monthData.month,
+                        materials: materialsArray,
+                        overallStatus: "Not Ordered",
+                        priority: monthData.month <= 3 ? "High" : monthData.month <= 6 ? "Medium" : "Low"
+                    };
+                });
+
+                setForecastData(transformedData);
+            } else {
+                console.error('Failed to fetch monthly BOQ');
+                alert('No monthly forecast found for this project');
+            }
+        } catch (error) {
+            console.error('Error fetching monthly BOQ:', error);
+            alert('Error loading monthly forecast data');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Helper function to extract unit from material name
+    const getUnitFromMaterialName = (materialName) => {
+        if (materialName.includes('_tons')) return 'tons';
+        if (materialName.includes('_km')) return 'km';
+        if (materialName.includes('_m3')) return 'm3';
+        if (materialName.includes('_m') && !materialName.includes('_m3')) return 'm';
+        if (materialName.includes('_MT')) return 'MT';
+        if (materialName.includes('_pcs')) return 'pcs';
+        if (materialName.includes('_units')) return 'units';
+        if (materialName.includes('_sets')) return 'sets';
+        if (materialName.includes('_lots')) return 'lots';
+        return 'units'; // default
     };
 
     const handleOrderMaterial = (monthNumber, materialId) => {
