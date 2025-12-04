@@ -38,13 +38,13 @@ export default function Dashboard() {
         <div className="p-6 md:p-8 space-y-6 bg-[#f5f8fd]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Supply Chain Dashboard</h1>
+                    <h1 className="text-3xl font-bold text-slate-900">Project Management Dashboard</h1>
                     <p className="text-slate-500 mt-1">Real-time insights for POWERGRID operations</p>
                 </div>
-                <Badge className="bg-green-100 text-green-800 border-green-300 px-4 py-2">
+                {/* <Badge className="bg-green-100 text-green-800 border-green-300 px-4 py-2">
                     <Leaf className="w-4 h-4 mr-2" />
                     Sustainability Mode Active
-                </Badge>
+                </Badge> */}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
