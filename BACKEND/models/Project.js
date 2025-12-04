@@ -137,9 +137,21 @@ const projectSchema = Schema({
     },
     material_code: {
         type: [String]
-    }, 
-    project_current_month : {
-        type : Number
+    },
+    project_current_month: {
+        type: Number
+    },
+    current_phase: {
+        type: String,
+        enum: [
+            'Phase 1 - Pre-Construction / Early Civil Works',
+            'Phase 2 - Structure Erection / Mechanical Works',
+            'Phase 3 - Conductor & Line Stringing',
+            'Phase 4 - Electrical & Substation Equipment Installation',
+            'Phase 5 - Cabling & Final Electrical Works',
+            'Phase 6 - Commissioning & Finishing'
+        ],
+        default: 'Phase 1 - Pre-Construction / Early Civil Works'
     }
 }, {
     timestamps: true

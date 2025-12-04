@@ -197,7 +197,38 @@ function generateMockForecast(projectData) {
     };
 }
 
+// @desc    Update project phase
+// @route   PATCH /api/projects/:id/phase
+// @access  Private
+const updateProjectPhase = asyncHandler(async (req, res) => {
+    const { current_phase } = req.body;
+
+    if (!current_phase) {
+        res.status(400);
+        throw new Error('Please provide a phase');
+    }
+
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+        res.status(404);
+        throw new Error('Project not found');
+    }
+
+    // Verify user owns the project
+    if (project.user.toString() !== req.user.id) {
+        res.status(403);
+        throw new Error('User not authorized');
+    }
+
+    project.current_phase = current_phase;
+    const updatedProject = await project.save();
+
+    res.status(200).json(updatedProject);
+});
+
 export {
     createProject,
     getProjects,
+    updateProjectPhase,
 };

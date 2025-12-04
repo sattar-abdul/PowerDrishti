@@ -17,6 +17,44 @@ const MonthWiseForecast = () => {
     const [forecastData, setForecastData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("schedule");
+    const [currentPhase, setCurrentPhase] = useState("Phase 1 - Pre-Construction / Early Civil Works");
+    const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
+
+    // Phase-to-material priority mapping
+    const PHASE_MATERIALS = {
+        "Phase 1 - Pre-Construction / Early Civil Works": {
+            high: ["Earth_Rods_units", "Earthing_Mat_sets", "Foundation_Concrete_m3",
+                "Cement_MT", "Sand_m3", "Aggregate_m3", "Tower_Steel_MT", "Angle_Tower_MT"]
+        },
+        "Phase 2 - Structure Erection / Mechanical Works": {
+            high: ["Bolts_Nuts_pcs", "Misc_Hardware_lots", "Vibration_Dampers_pcs",
+                "Spacer_Dampers_pcs", "Clamp_Fittings_sets"],
+            medium: ["Cable_Trays_m", "Lighting_Protection_sets"]
+        },
+        "Phase 3 - Conductor & Line Stringing": {
+            high: ["ACSR_Moose_tons", "ACSR_Zebra_tons", "AAAC_tons",
+                "OPGW_km", "Earthwire_km", "Conductor_Accessories_sets"]
+        },
+        "Phase 4 - Electrical & Substation Equipment Installation": {
+            high: ["Power_Transformer_units", "Transformer_MVA_units", "Circuit_Breaker_units",
+                "Isolator_units", "CT_PT_sets", "Relay_Panels_units"]
+        },
+        "Phase 5 - Cabling & Final Electrical Works": {
+            medium: ["Control_Cable_m", "Power_Cable_m", "Busbar_MT", "MC501_units"]
+        },
+        "Phase 6 - Commissioning & Finishing": {
+            low: ["Lighting_Protection_sets", "Misc_Hardware_lots"]
+        }
+    };
+
+    const PHASES = [
+        "Phase 1 - Pre-Construction / Early Civil Works",
+        "Phase 2 - Structure Erection / Mechanical Works",
+        "Phase 3 - Conductor & Line Stringing",
+        "Phase 4 - Electrical & Substation Equipment Installation",
+        "Phase 5 - Cabling & Final Electrical Works",
+        "Phase 6 - Commissioning & Finishing"
+    ];
 
     useEffect(() => {
         if (projectId) {
@@ -37,8 +75,9 @@ const MonthWiseForecast = () => {
                 const data = await response.json();
                 console.log('Monthly BOQ data:', data);
 
-                // Set project name
+                // Set project name and current phase
                 setProjectName(data.project?.project_name || "Project");
+                setCurrentPhase(data.project?.current_phase || "Phase 1 - Pre-Construction / Early Civil Works");
 
                 // Transform monthly_breakdown to forecastData format
                 const transformedData = data.monthly_breakdown.map((monthData) => {
@@ -135,6 +174,56 @@ const MonthWiseForecast = () => {
         }
     };
 
+    // Get material priority based on current phase
+    const getMaterialPriority = (materialId) => {
+        const phaseMaterials = PHASE_MATERIALS[currentPhase];
+        if (!phaseMaterials) return "Low";
+
+        if (phaseMaterials.high?.includes(materialId)) return "High";
+        if (phaseMaterials.medium?.includes(materialId)) return "Medium";
+        if (phaseMaterials.low?.includes(materialId)) return "Low";
+
+        return "Low"; // default
+    };
+
+    // Get priority badge for material
+    const getPriorityBadge = (priority) => {
+        switch (priority) {
+            case "High":
+                return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">High</Badge>;
+            case "Medium":
+                return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Medium</Badge>;
+            default:
+                return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Low</Badge>;
+        }
+    };
+
+    // Handle phase change
+    const handlePhaseChange = async (newPhase) => {
+        setIsUpdatingPhase(true);
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/projects/${projectId}/phase`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ current_phase: newPhase })
+            });
+
+            if (response.ok) {
+                setCurrentPhase(newPhase);
+            } else {
+                alert('Failed to update project phase');
+            }
+        } catch (error) {
+            console.error('Error updating phase:', error);
+            alert('Error updating project phase');
+        } finally {
+            setIsUpdatingPhase(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -153,6 +242,42 @@ const MonthWiseForecast = () => {
                 <p className="text-slate-500 mt-1">Project: {projectName}</p>
             </div>
 
+            {/* Phase Slider */}
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardHeader>
+                    <CardTitle className="text-lg">Project Phase</CardTitle>
+                    <CardDescription>Select the current construction phase to prioritize materials</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                            {PHASES.map((phase, index) => (
+                                <Button
+                                    key={phase}
+                                    variant={currentPhase === phase ? "default" : "outline"}
+                                    className={`h-auto min-h-[80px] py-3 px-3 text-xs whitespace-normal ${currentPhase === phase
+                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                        : "hover:bg-blue-50"
+                                        }`}
+                                    onClick={() => handlePhaseChange(phase)}
+                                    disabled={isUpdatingPhase}
+                                >
+                                    <div className="text-center w-full">
+                                        <div className="font-bold mb-1">Phase {index + 1}</div>
+                                        <div className="leading-tight text-[10px] break-words">
+                                            {phase.split(' - ')[1]}
+                                        </div>
+                                    </div>
+                                </Button>
+                            ))}
+                        </div>
+                        {isUpdatingPhase && (
+                            <p className="text-sm text-blue-600 text-center">Updating phase...</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="schedule">Monthly Schedule</TabsTrigger>
@@ -169,11 +294,6 @@ const MonthWiseForecast = () => {
                                             <Calendar className="w-5 h-5 text-blue-600" />
                                             {monthData.month}
                                         </CardTitle>
-                                        <CardDescription>
-                                            Priority: <Badge variant={monthData.priority === "High" ? "destructive" : "secondary"}>
-                                                {monthData.priority}
-                                            </Badge>
-                                        </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         {getStatusBadge(monthData.overallStatus)}
@@ -194,6 +314,7 @@ const MonthWiseForecast = () => {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Material</TableHead>
+                                            <TableHead>Priority</TableHead>
                                             <TableHead>Quantity</TableHead>
                                             <TableHead>Unit</TableHead>
                                             <TableHead>Status</TableHead>
@@ -204,6 +325,7 @@ const MonthWiseForecast = () => {
                                         {monthData.materials.map((material) => (
                                             <TableRow key={material.id}>
                                                 <TableCell className="font-medium">{material.name}</TableCell>
+                                                <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
                                                 <TableCell>{material.quantity.toLocaleString()}</TableCell>
                                                 <TableCell>{material.unit}</TableCell>
                                                 <TableCell>
