@@ -122,6 +122,9 @@ const projectSchema = Schema({
     },
     material_code: {
         type: [String]
+    }, 
+    project_current_month : {
+        type : Number
     }
 }, {
     timestamps: true

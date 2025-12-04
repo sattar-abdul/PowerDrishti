@@ -28,7 +28,6 @@ const router = createBrowserRouter(
         <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
         <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
-        <Route path="/forecast" element={<Layout><Report /></Layout>} />
         <Route path="/report" element={<Layout><Report /></Layout>} />
         <Route path="/monthly" element={<Layout><MonthWiseForecast /></Layout>} />
       </Route>
