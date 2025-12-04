@@ -90,8 +90,8 @@ function SidebarContentWrapper() {
                                     <Zap className="w-6 h-6 text-white" />
                                 </div>
                                 <div className="truncate">
-                                    <h2 className="font-bold text-slate-900 text-lg truncate">PowerDrishtiAI</h2>
-                                    <p className="text-xs text-slate-500 truncate">POWERGRID Supply Chain</p>
+                                    <h2 className="font-bold text-slate-900 text-lg truncate">PowerDrishti AI</h2>
+                                    <p className="text-xs text-slate-500 truncate">For POWERGRID</p>
                                 </div>
                             </div>
                             <SidebarTrigger className="text-slate-400 hover:text-slate-600" />
