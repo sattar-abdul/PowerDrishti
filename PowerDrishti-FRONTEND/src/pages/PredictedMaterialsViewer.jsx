@@ -91,8 +91,6 @@ const PredictedMaterialsViewer = () => {
                         <FileText className="w-5 h-5 text-blue-600" />
                         Select Project
                     </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
                     {isLoadingProjects ? (
                         <div className="flex items-center gap-2 text-slate-600">
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -112,7 +110,7 @@ const PredictedMaterialsViewer = () => {
                             </SelectContent>
                         </Select>
                     )}
-                </CardContent>
+                </CardHeader>
             </Card>
 
             {isLoadingBOQ && (
@@ -209,7 +207,7 @@ const PredictedMaterialsViewer = () => {
                                 <CardHeader className="border-b border-slate-200">
                                     <CardTitle className="flex items-center gap-2">
                                         <Info className="w-5 h-5 text-purple-600" />
-                                        ML Parameters
+                                        ML Parameters Provided
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-6">
