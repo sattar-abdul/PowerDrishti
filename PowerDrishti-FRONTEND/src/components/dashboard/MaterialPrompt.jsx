@@ -172,7 +172,7 @@ const DashboardProjectsCard = () => {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-2">
                 <div className="space-y-4">
                     {dummyProjects.map((project) => {
                         const currentStatus = getCurrentMonthStatus(project);

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FileText, Calendar, Zap, Info } from "lucide-react";
 import { LOCAL_URL } from "@/api/api";
+import { Button } from "@/components/ui/button";
 
 const PredictedMaterialsViewer = () => {
     const { token } = useAuth();
@@ -203,6 +204,7 @@ const PredictedMaterialsViewer = () => {
                     </Card>
 
                     {selectedProjectData && (
+                        <div className="">
                         <Card className="bg-white border-slate-200">
                             <CardHeader className="border-b border-slate-200">
                                 <CardTitle className="flex items-center gap-2">
@@ -308,6 +310,22 @@ const PredictedMaterialsViewer = () => {
                                 </div>
                             </CardContent>
                         </Card>
+
+<div className="flex justify-end">
+<Button
+    onClick={() => {
+        // Navigate to month-wise forecast page
+        // For now, we'll create a state to show the component inline
+        // You can also use router.push('/month-wise-forecast')
+        window.location.href = `/monthly`;
+    }}
+    className="bg-green-600 hover:bg-green-700"
+>
+    <Calendar className="w-4 h-4 mr-2" />
+    Generate Month-wise Forecast & Order
+</Button>
+</div>
+</div>
                     )}
                 </>
             )}
