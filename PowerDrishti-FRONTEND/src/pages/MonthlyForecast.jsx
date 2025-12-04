@@ -43,15 +43,17 @@ const MonthWiseForecast = () => {
                 // Transform monthly_breakdown to forecastData format
                 const transformedData = data.monthly_breakdown.map((monthData) => {
                     // Convert Map to array of materials
-                    const materialsArray = Object.entries(monthData.materials).map(([name, quantity]) => ({
-                        id: name,
-                        name: name.replace(/_/g, ' '),
-                        quantity: quantity,
-                        unit: getUnitFromMaterialName(name),
-                        ordered: false,
-                        orderDate: null,
-                        deliveryStatus: "Pending"
-                    }));
+                    const materialsArray = Object.entries(monthData.materials)
+                        .filter(([name, quantity]) => quantity > 0)
+                        .map(([name, quantity]) => ({
+                            id: name,
+                            name: name.replace(/_/g, ' '),
+                            quantity: quantity,
+                            unit: getUnitFromMaterialName(name),
+                            ordered: false,
+                            orderDate: null,
+                            deliveryStatus: "Pending"
+                        }));
 
                     return {
                         month: `Month ${monthData.month}`,

@@ -135,7 +135,7 @@ function SidebarContentWrapper() {
                 {expanded && (
                     <SidebarGroup>
                         <SidebarGroupLabel className="text-xs font-medium text-slate-500 uppercase tracking-wider px-2 py-2 mt-4">
-                            Quick Info
+                            What we offer
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <div className="px-3 py-2 space-y-3">
