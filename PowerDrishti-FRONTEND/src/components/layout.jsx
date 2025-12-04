@@ -48,11 +48,6 @@ const navigationItems = [
         icon: ListChecks,
     },
     {
-        title: "Inventory Analyzer",
-        url: "/inventory",
-        icon: Warehouse,
-    },
-    {
         title: "Inventory Management",
         url: "/inventory-management",
         icon: Package,
@@ -66,6 +61,11 @@ const navigationItems = [
         title: "Carbon Tracking",
         url: "/carbon-tracking",
         icon: Leaf,
+    },
+    {
+        title: "Inventory Analyzer",
+        url: "/inventory",
+        icon: Warehouse,
     },
     {
         title: "Reports",

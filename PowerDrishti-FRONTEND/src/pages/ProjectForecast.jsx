@@ -564,7 +564,7 @@ const ProjectForecast = () => {
                                         console.log('Project ID:', projectId, 'Full project:', forecastResults.project);
                                         window.location.href = `/monthly/${projectId}`;
                                     }}
-                                    className="bg-green-600 hover:bg-green-700"
+                                    className="bg-green-600 hover:bg-green-700 mt-3"
                                 >
                                     <Calendar className="w-4 h-4 mr-2" />
                                     Generate Month-wise Forecast & Order
