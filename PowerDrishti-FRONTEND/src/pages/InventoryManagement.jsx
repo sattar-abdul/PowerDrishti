@@ -187,9 +187,32 @@ const InventoryManagement = () => {
                     <CardTitle className="flex items-center gap-2">
                         <Package className="w-5 h-5 text-blue-600" />
                         Select Project
+                        <Select value={selectedProject} onValueChange={setSelectedProject}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a project" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {projects.map((project) => (
+                                    <SelectItem key={project._id} value={project._id}>
+                                        {project.project_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {selectedProject && (
+                            <Button
+                                onClick={fetchInventory}
+                                variant="outline"
+                                className="gap-2"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Refresh
+                            </Button>
+                        )}
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                {/* <CardContent className="p-6">
                     <div className="flex gap-4 items-end">
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="project">Project *</Label>
@@ -217,7 +240,7 @@ const InventoryManagement = () => {
                             </Button>
                         )}
                     </div>
-                </CardContent>
+                </CardContent> */}
             </Card>
 
             {/* CSV Upload Section */}
