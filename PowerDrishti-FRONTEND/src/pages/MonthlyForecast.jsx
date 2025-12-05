@@ -1,24 +1,27 @@
-// MonthWiseForecast.jsx
+// MonthWiseForecast.jsx - Enhanced with Order Placement and Tracking
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, Clock, AlertTriangle, Download, ShoppingCart } from "lucide-react";
+import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LOCAL_URL } from "@/api/api";
 
 const MonthWiseForecast = () => {
     const { projectId } = useParams();
     const { token } = useAuth();
+    const navigate = useNavigate();
     const [projectName, setProjectName] = useState("");
     const [forecastData, setForecastData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("schedule");
     const [currentPhase, setCurrentPhase] = useState("Phase 1 - Pre-Construction / Early Civil Works");
     const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
+    const [orders, setOrders] = useState({}); // Store orders by materialId
+    const [isOrdering, setIsOrdering] = useState(false);
 
     // Phase-to-material priority mapping
     const PHASE_MATERIALS = {
@@ -91,6 +94,8 @@ const MonthWiseForecast = () => {
                             unit: getUnitFromMaterialName(name),
                             ordered: false,
                             orderDate: null,
+                            trackingId: null,
+                            orderId: null,
                             deliveryStatus: "Pending"
                         }));
 
@@ -130,37 +135,103 @@ const MonthWiseForecast = () => {
         return 'units'; // default
     };
 
-    const handleOrderMaterial = (monthNumber, materialId) => {
-        // Update the ordered status
-        setForecastData(prev => prev.map(month => {
-            if (month.monthNumber === monthNumber) {
-                return {
-                    ...month,
-                    materials: month.materials.map(mat =>
-                        mat.id === materialId ? { ...mat, ordered: true, orderDate: new Date().toLocaleDateString() } : mat
-                    ),
-                    overallStatus: "Partially Ordered"
-                };
+    const handleOrderMaterial = async (monthNumber, materialId) => {
+        setIsOrdering(true);
+        try {
+            // Find the material details
+            const monthData = forecastData.find(m => m.monthNumber === monthNumber);
+            const material = monthData?.materials.find(m => m.id === materialId);
+
+            if (!material) {
+                alert('Material not found');
+                setIsOrdering(false);
+                return;
             }
-            return month;
-        }));
+
+            // Place order via API
+            const response = await fetch(`${LOCAL_URL}/api/procurement/order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    projectId,
+                    material_name: material.name,
+                    material_id: materialId,
+                    quantity: material.quantity,
+                    unit: material.unit,
+                    month_number: monthNumber,
+                    expected_delivery_days: 14,
+                    priority: getMaterialPriority(materialId)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to place order');
+            }
+
+            const data = await response.json();
+
+            // Store order info
+            setOrders(prev => ({
+                ...prev,
+                [`${monthNumber}-${materialId}`]: {
+                    orderId: data.order._id,
+                    trackingId: data.tracking.tracking_id,
+                    status: data.order.status
+                }
+            }));
+
+            // Update the ordered status in UI
+            setForecastData(prev => prev.map(month => {
+                if (month.monthNumber === monthNumber) {
+                    const updatedMaterials = month.materials.map(mat =>
+                        mat.id === materialId ? {
+                            ...mat,
+                            ordered: true,
+                            orderDate: new Date().toLocaleDateString(),
+                            trackingId: data.tracking.tracking_id,
+                            orderId: data.order._id
+                        } : mat
+                    );
+
+                    // Check if all materials are ordered
+                    const allOrdered = updatedMaterials.every(m => m.ordered);
+
+                    return {
+                        ...month,
+                        materials: updatedMaterials,
+                        overallStatus: allOrdered ? "Ordered" : "Partially Ordered"
+                    };
+                }
+                return month;
+            }));
+
+            alert(`Order placed successfully! Tracking ID: ${data.tracking.tracking_id}`);
+        } catch (error) {
+            console.error('Error placing order:', error);
+            alert('Failed to place order. Please try again.');
+        } finally {
+            setIsOrdering(false);
+        }
     };
 
-    const handleOrderAllForMonth = (monthNumber) => {
-        setForecastData(prev => prev.map(month => {
-            if (month.monthNumber === monthNumber) {
-                return {
-                    ...month,
-                    materials: month.materials.map(mat => ({
-                        ...mat,
-                        ordered: true,
-                        orderDate: new Date().toLocaleDateString()
-                    })),
-                    overallStatus: "Ordered"
-                };
+    const handleOrderAllForMonth = async (monthNumber) => {
+        const monthData = forecastData.find(m => m.monthNumber === monthNumber);
+        if (!monthData) return;
+
+        // Order all materials in this month
+        for (const material of monthData.materials) {
+            if (!material.ordered) {
+                await handleOrderMaterial(monthNumber, material.id);
             }
-            return month;
-        }));
+        }
+    };
+
+    const handleTrackMaterial = (trackingId) => {
+        // Navigate to material tracking page with tracking ID
+        navigate(`/material-tracking?trackingId=${trackingId}`);
     };
 
     const getStatusBadge = (status) => {
@@ -300,7 +371,7 @@ const MonthWiseForecast = () => {
                                         <Button
                                             size="sm"
                                             onClick={() => handleOrderAllForMonth(monthData.monthNumber)}
-                                            disabled={monthData.overallStatus === "Ordered"}
+                                            disabled={monthData.overallStatus === "Ordered" || isOrdering}
                                             className="bg-blue-600 hover:bg-blue-700"
                                         >
                                             <ShoppingCart className="w-4 h-4 mr-2" />
@@ -343,25 +414,29 @@ const MonthWiseForecast = () => {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Button
-                                                        size="sm"
-                                                        variant={material.ordered ? "outline" : "default"}
-                                                        onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                        disabled={material.ordered}
-                                                        className={material.ordered ? "bg-green-50 hover:bg-green-50" : ""}
-                                                    >
-                                                        {material.ordered ? (
-                                                            <>
-                                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                                Ordered
-                                                            </>
-                                                        ) : (
-                                                            <>
+                                                    <div className="flex gap-2">
+                                                        {!material.ordered ? (
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                disabled={isOrdering}
+                                                                className="bg-blue-600 hover:bg-blue-700"
+                                                            >
                                                                 <ShoppingCart className="w-3 h-3 mr-1" />
                                                                 Order Now
-                                                            </>
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleTrackMaterial(material.trackingId)}
+                                                                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                                            >
+                                                                <Truck className="w-3 h-3 mr-1" />
+                                                                Track Now
+                                                            </Button>
                                                         )}
-                                                    </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
