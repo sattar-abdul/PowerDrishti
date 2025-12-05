@@ -375,8 +375,8 @@ const MonthWiseForecast = () => {
                                                                     </span>
                                                                     <span className="text-gray-500"></span>
                                                                     <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
-                                                                        {qtyInfo.toOrder === 0 
-                                                                            ? "Sufficient" 
+                                                                        {qtyInfo.toOrder === 0
+                                                                            ? "Sufficient"
                                                                             : qtyInfo.toOrder.toLocaleString()}
                                                                     </span>
                                                                 </div>
@@ -403,25 +403,36 @@ const MonthWiseForecast = () => {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Button
-                                                        size="sm"
-                                                        variant={material.ordered ? "outline" : "default"}
-                                                        onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                        disabled={material.ordered}
-                                                        className={material.ordered ? "bg-green-50 hover:bg-green-50" : ""}
-                                                    >
-                                                        {material.ordered ? (
-                                                            <>
-                                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                                Ordered
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ShoppingCart className="w-3 h-3 mr-1" />
-                                                                Order Now
-                                                            </>
-                                                        )}
-                                                    </Button>
+                                                    {(() => {
+                                                        const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                        const isSufficient = qtyInfo.hasInventory && qtyInfo.toOrder === 0;
+                                                        return (
+                                                            <Button
+                                                                size="sm"
+                                                                variant={material.ordered || isSufficient ? "outline" : "default"}
+                                                                onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                disabled={material.ordered || isSufficient}
+                                                                className={material.ordered ? "bg-green-50 hover:bg-green-50" : isSufficient ? "bg-gray-100 hover:bg-gray-100 cursor-not-allowed" : ""}
+                                                            >
+                                                                {material.ordered ? (
+                                                                    <>
+                                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                                        Ordered
+                                                                    </>
+                                                                ) : isSufficient ? (
+                                                                    <>
+                                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                                        Sufficient Stock
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                        Order Now
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        );
+                                                    })()}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
