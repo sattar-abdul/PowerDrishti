@@ -409,8 +409,15 @@ const ProjectForecast = () => {
                                             <Input
                                                 id="total_budget"
                                                 type="number"
+                                                min={1}          // <-- minimum allowed
+                                                max={25000}        // <-- maximum allowed
                                                 value={formData.total_budget}
-                                                onChange={(e) => setFormData({ ...formData, total_budget: e.target.value })}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        total_budget: e.target.value,
+                                                    })
+                                                }
                                                 placeholder="e.g., 500"
                                                 required
                                             />
@@ -420,7 +427,6 @@ const ProjectForecast = () => {
                                             <Input
                                                 id="taxes_duty"
                                                 type="number"
-                                                step="0.1"
                                                 value={formData.taxes_duty}
                                                 onChange={(e) => setFormData({ ...formData, taxes_duty: e.target.value })}
                                                 placeholder="e.g., 18"
