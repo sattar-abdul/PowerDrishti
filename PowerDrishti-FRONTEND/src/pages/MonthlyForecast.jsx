@@ -1,4 +1,4 @@
-// MonthWiseForecast.jsx
+﻿// MonthWiseForecast.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +19,7 @@ const MonthWiseForecast = () => {
     const [activeTab, setActiveTab] = useState("schedule");
     const [currentPhase, setCurrentPhase] = useState("Phase 1 - Pre-Construction / Early Civil Works");
     const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
+    const [inventoryData, setInventoryData] = useState({});
 
     // Phase-to-material priority mapping
     const PHASE_MATERIALS = {
@@ -59,6 +60,7 @@ const MonthWiseForecast = () => {
     useEffect(() => {
         if (projectId) {
             fetchMonthlyBOQ();
+            fetchInventory();
         }
     }, [projectId]);
 
@@ -128,6 +130,39 @@ const MonthWiseForecast = () => {
         if (materialName.includes('_sets')) return 'sets';
         if (materialName.includes('_lots')) return 'lots';
         return 'units'; // default
+    };
+
+    const fetchInventory = async () => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/inventory/${projectId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const inventoryMap = {};
+                data.items.forEach(item => {
+                    inventoryMap[item.item_name] = item.quantity;
+                });
+                setInventoryData(inventoryMap);
+            }
+        } catch (error) {
+            console.error('Error fetching inventory:', error);
+            setInventoryData({});
+        }
+    };
+
+    const getQuantityToOrder = (materialId, predictedQty) => {
+        const availableQty = inventoryData[materialId] || 0;
+        const toOrder = Math.max(0, predictedQty - availableQty);
+        return {
+            predicted: predictedQty,
+            available: availableQty,
+            toOrder: toOrder,
+            hasInventory: availableQty > 0
+        };
     };
 
     const handleOrderMaterial = (monthNumber, materialId) => {
@@ -326,7 +361,32 @@ const MonthWiseForecast = () => {
                                             <TableRow key={material.id}>
                                                 <TableCell className="font-medium">{material.name}</TableCell>
                                                 <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
-                                                <TableCell>{material.quantity.toLocaleString()}</TableCell>
+                                                <TableCell>
+                                                    {(() => {
+                                                        const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                        if (!qtyInfo.hasInventory) {
+                                                            return qtyInfo.predicted.toLocaleString();
+                                                        }
+                                                        return (
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="line-through text-gray-400 text-sm">
+                                                                        {qtyInfo.predicted.toLocaleString()}
+                                                                    </span>
+                                                                    <span className="text-gray-500"></span>
+                                                                    <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
+                                                                        {qtyInfo.toOrder === 0 
+                                                                            ? "Sufficient" 
+                                                                            : qtyInfo.toOrder.toLocaleString()}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                                    Available: {qtyInfo.available.toLocaleString()}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </TableCell>
                                                 <TableCell>{material.unit}</TableCell>
                                                 <TableCell>
                                                     {material.ordered ? (
@@ -422,3 +482,4 @@ const MonthWiseForecast = () => {
 };
 
 export default MonthWiseForecast;
+

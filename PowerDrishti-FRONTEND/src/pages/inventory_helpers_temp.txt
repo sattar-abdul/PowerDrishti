@@ -1,0 +1,33 @@
+
+    const fetchInventory = async () => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/inventory/${projectId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const inventoryMap = {};
+                data.items.forEach(item => {
+                    inventoryMap[item.item_name] = item.quantity;
+                });
+                setInventoryData(inventoryMap);
+            }
+        } catch (error) {
+            console.error('Error fetching inventory:', error);
+            setInventoryData({});
+        }
+    };
+
+    const getQuantityToOrder = (materialId, predictedQty) => {
+        const availableQty = inventoryData[materialId] || 0;
+        const toOrder = Math.max(0, predictedQty - availableQty);
+        return {
+            predicted: predictedQty,
+            available: availableQty,
+            toOrder: toOrder,
+            hasInventory: availableQty > 0
+        };
+    };
