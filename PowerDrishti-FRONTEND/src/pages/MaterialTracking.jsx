@@ -1,58 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Navigation, PlayCircle, StopCircle, Truck } from "lucide-react";
+import { MapPin, Navigation, PlayCircle, StopCircle, Truck, Package, Calendar } from "lucide-react";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { truckIcon } from "@/lib/mockData";
 import { useAuth } from "@/context/AuthContext";
 import { LOCAL_URL } from "@/api/api.js";
-
-// Indian Cities Coordinates
-const CITIES = {
-    "Delhi": [28.6139, 77.2090],
-    "Mumbai": [19.0760, 72.8777],
-    "Bangalore": [12.9716, 77.5946],
-    "Chennai": [13.0827, 80.2707],
-    "Kolkata": [22.5726, 88.3639],
-    "Hyderabad": [17.3850, 78.4867],
-    "Pune": [18.5204, 73.8567],
-    "Ahmedabad": [23.0225, 72.5714],
-    "Jaipur": [26.9124, 75.7873],
-    "Lucknow": [26.8467, 80.9462],
-    "Chandigarh": [30.7333, 76.7794],
-    "Bhopal": [23.2599, 77.4126]
-};
-
-// Detailed Mumbai-Pune Expressway Route
-const MUMBAI_PUNE_ROUTE = [
-    [19.025770, 73.101570],   // Kalamboli (start of M–P Expressway)
-    [19.015000, 73.110000],
-    [19.000000, 73.115000],
-    [18.990713, 73.116844],   // Panvel
-    [18.950000, 73.150000],
-    [18.900000, 73.200000],
-    [18.834003, 73.288712],   // Khalapur
-    [18.810000, 73.290000],
-    [18.792609, 73.295589],   // mid-expressway
-    [18.770000, 73.340000],
-    [18.750000, 73.383000],   // Khandala
-    [18.748060, 73.407219],   // Lonavala
-    [18.740000, 73.450000],
-    [18.735000, 73.540000],   // between Lonavala and Talegaon
-    [18.733000, 73.600000],
-    [18.732103, 73.676376],   // Talegaon Dabhade
-    [18.700000, 73.700000],
-    [18.659077, 73.721300],   // Kiwale
-    [18.652252, 73.741905],   // Ravet
-    [18.600000, 73.780000],
-    [18.550000, 73.820000],
-    [18.520430, 73.856744]    // Pune
-];
 
 // Custom Pin Icon
 const pinIcon = new L.Icon({
@@ -65,6 +23,21 @@ const pinIcon = new L.Icon({
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40]
+});
+
+// Truck Icon
+const truckIcon = new L.Icon({
+    iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="1" y="3" width="15" height="13"></rect>
+      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+      <circle cx="5.5" cy="18.5" r="2.5" fill="#3b82f6"></circle>
+      <circle cx="18.5" cy="18.5" r="2.5" fill="#3b82f6"></circle>
+    </svg>
+  `),
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20]
 });
 
 // Component to invalidate map size when container changes
@@ -87,7 +60,7 @@ function MapResizer() {
 function RouteFitter({ source, destination, route }) {
     const map = useMap();
     useEffect(() => {
-        if (route) {
+        if (route && route.length > 0) {
             const bounds = L.latLngBounds(route);
             map.fitBounds(bounds, { padding: [50, 50] });
         } else if (source && destination) {
@@ -98,83 +71,110 @@ function RouteFitter({ source, destination, route }) {
     return null;
 }
 
-// Helper to get position along a polyline
-function getPositionAlongRoute(route, progress) {
-    if (!route || route.length < 2) return route[0];
-
-    const totalPoints = route.length - 1;
-    const exactIndex = progress * totalPoints;
-    const index = Math.floor(exactIndex);
-    const nextIndex = Math.min(index + 1, totalPoints);
-    const segmentProgress = exactIndex - index;
-
-    const start = route[index];
-    const end = route[nextIndex];
-
-    const lat = start[0] + (end[0] - start[0]) * segmentProgress;
-    const lng = start[1] + (end[1] - start[1]) * segmentProgress;
-
-    return [lat, lng];
-}
-
 export default function MaterialTracking() {
-    const [projects, setProjects] = useState([]);
-    const [selectedProjectId, setSelectedProjectId] = useState("");
-    const [sourceCity, setSourceCity] = useState("");
-    const [destinationCity, setDestinationCity] = useState("");
+    const [searchParams] = useSearchParams();
+    const { token } = useAuth();
+    const [activeOrders, setActiveOrders] = useState([]);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [trackingData, setTrackingData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [isTracking, setIsTracking] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [truckPosition, setTruckPosition] = useState(null);
-    const [eta, setEta] = useState(null);
-    const { token } = useAuth();
 
     // Animation ref
     const requestRef = useRef();
     const startTimeRef = useRef();
-    const duration = 60000; // 60 seconds
+    const duration = 60000; // 60 seconds for simulation
 
     useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const response = await fetch(`${LOCAL_URL}/api/projects`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setProjects(data);
+        fetchActiveOrders();
+
+        // Check if tracking ID is in URL
+        const trackingId = searchParams.get('trackingId');
+        if (trackingId) {
+            fetchTrackingByTrackingId(trackingId);
+        }
+    }, []);
+
+    const fetchActiveOrders = async () => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/tracking/active`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-            } catch (error) {
-                console.error("Failed to fetch projects", error);
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setActiveOrders(data);
+                setIsLoading(false);
             }
-        };
-
-        if (token) {
-            fetchProjects();
+        } catch (error) {
+            console.error("Failed to fetch active orders", error);
+            setIsLoading(false);
         }
-    }, [token]);
+    };
 
-    const handleStartTracking = () => {
-        if (!selectedProjectId || !sourceCity || !destinationCity) {
-            alert("Please fill in all fields");
+    const fetchTrackingByTrackingId = async (trackingId) => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/tracking/${trackingId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setTrackingData(data);
+                setSelectedOrder(data.order?._id);
+            }
+        } catch (error) {
+            console.error("Failed to fetch tracking data", error);
+        }
+    };
+
+    const handleOrderSelect = async (orderId) => {
+        setSelectedOrder(orderId);
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/tracking/order/${orderId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setTrackingData(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch tracking data", error);
+        }
+    };
+
+    const handleStartTracking = async () => {
+        if (!trackingData) {
+            alert("Please select an order to track");
             return;
         }
-        if (sourceCity === destinationCity) {
-            alert("Source and Destination cannot be the same");
-            return;
+
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/tracking/${trackingData.tracking_id}/start`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setTrackingData(data);
+                setIsTracking(true);
+                setProgress(0);
+
+                startTimeRef.current = Date.now();
+                requestRef.current = requestAnimationFrame(animate);
+            }
+        } catch (error) {
+            console.error("Failed to start tracking", error);
+            alert("Failed to start tracking");
         }
-
-        setIsTracking(true);
-        setProgress(0);
-        setTruckPosition(CITIES[sourceCity]);
-
-        const mockEta = new Date();
-        mockEta.setDate(mockEta.getDate() + 2);
-        setEta(mockEta);
-
-        startTimeRef.current = Date.now();
-        requestRef.current = requestAnimationFrame(animate);
     };
 
     const handleStopTracking = () => {
@@ -183,8 +183,6 @@ export default function MaterialTracking() {
             cancelAnimationFrame(requestRef.current);
         }
         setProgress(0);
-        setTruckPosition(null);
-        setEta(null);
     };
 
     const animate = () => {
@@ -195,27 +193,51 @@ export default function MaterialTracking() {
         setProgress(newProgress * 100);
 
         if (newProgress < 1) {
-            let pos;
-            if (sourceCity === "Mumbai" && destinationCity === "Pune") {
-                pos = getPositionAlongRoute(MUMBAI_PUNE_ROUTE, newProgress);
-            } else if (sourceCity === "Pune" && destinationCity === "Mumbai") {
-                // Reverse route
-                const reversedRoute = [...MUMBAI_PUNE_ROUTE].reverse();
-                pos = getPositionAlongRoute(reversedRoute, newProgress);
-            } else {
-                // Linear interpolation
-                const start = CITIES[sourceCity];
-                const end = CITIES[destinationCity];
-                const lat = start[0] + (end[0] - start[0]) * newProgress;
-                const lng = start[1] + (end[1] - start[1]) * newProgress;
-                pos = [lat, lng];
-            }
+            // Calculate intermediate position
+            const source = trackingData.source_location;
+            const dest = trackingData.destination_location;
+            const lat = source.lat + (dest.lat - source.lat) * newProgress;
+            const lng = source.lng + (dest.lng - source.lng) * newProgress;
 
-            setTruckPosition(pos);
+            // Update tracking location
+            updateTrackingLocation(lat, lng, newProgress);
+
             requestRef.current = requestAnimationFrame(animate);
         } else {
-            setTruckPosition(CITIES[destinationCity]);
+            // Reached destination
+            updateTrackingLocation(
+                trackingData.destination_location.lat,
+                trackingData.destination_location.lng,
+                1,
+                'Delivered'
+            );
             setIsTracking(false);
+        }
+    };
+
+    const updateTrackingLocation = async (lat, lng, progress, status = null) => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/tracking/${trackingData.tracking_id}/location`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    lat,
+                    lng,
+                    status: status || (progress >= 1 ? 'Delivered' : 'In Transit'),
+                    speed_kmh: 60,
+                    notes: `Progress: ${(progress * 100).toFixed(0)}%`
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setTrackingData(data);
+            }
+        } catch (error) {
+            console.error("Failed to update location", error);
         }
     };
 
@@ -227,18 +249,24 @@ export default function MaterialTracking() {
         };
     }, []);
 
-    const getActiveRoute = () => {
-        if (sourceCity === "Mumbai" && destinationCity === "Pune") return MUMBAI_PUNE_ROUTE;
-        if (sourceCity === "Pune" && destinationCity === "Mumbai") return [...MUMBAI_PUNE_ROUTE].reverse();
-        if (sourceCity && destinationCity) return [CITIES[sourceCity], CITIES[destinationCity]];
-        return null;
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Delivered':
+                return 'bg-green-100 text-green-800';
+            case 'In Transit':
+                return 'bg-blue-100 text-blue-800';
+            case 'Delayed':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-yellow-100 text-yellow-800';
+        }
     };
 
     return (
         <div className="bg-[#f5f8fd] p-6 md:p-8 space-y-6 min-h-screen">
             <div>
                 <h1 className="text-3xl font-bold text-slate-900">Live Material Tracking</h1>
-                <p className="text-slate-500 mt-1">Monitor project logistics and shipment status</p>
+                <p className="text-slate-500 mt-1">Monitor real-time shipment status and location</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -251,86 +279,95 @@ export default function MaterialTracking() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="project">Select Project</Label>
-                            <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isTracking}>
+                            <Label htmlFor="order">Select Order</Label>
+                            <Select value={selectedOrder} onValueChange={handleOrderSelect} disabled={isTracking}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select a Project" />
+                                    <SelectValue placeholder="Select an Order" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {projects.length > 0 ? (
-                                        projects.map(project => (
-                                            <SelectItem key={project._id} value={project._id}>
-                                                {project.project_name}
+                                    {activeOrders.length > 0 ? (
+                                        activeOrders.map(tracking => (
+                                            <SelectItem key={tracking._id} value={tracking.order._id}>
+                                                {tracking.order.material_name} - {tracking.tracking_id}
                                             </SelectItem>
                                         ))
                                     ) : (
-                                        <SelectItem value="none" disabled>No projects found</SelectItem>
+                                        <SelectItem value="none" disabled>No active orders</SelectItem>
                                     )}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Source Location</Label>
-                            <Select value={sourceCity} onValueChange={setSourceCity} disabled={isTracking}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Source City" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.keys(CITIES).map(city => (
-                                        <SelectItem key={city} value={city}>{city}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {trackingData && (
+                            <>
+                                <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Material:</span>
+                                        <span className="font-medium text-slate-900">{trackingData.order?.material_name}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Quantity:</span>
+                                        <span className="font-medium text-slate-900">{trackingData.order?.quantity} {trackingData.order?.unit}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Tracking ID:</span>
+                                        <span className="font-mono text-xs text-slate-900">{trackingData.tracking_id}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Status:</span>
+                                        <Badge className={getStatusColor(trackingData.status)}>{trackingData.status}</Badge>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Distance:</span>
+                                        <span className="font-medium text-slate-900">{trackingData.distance_km} km</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Covered:</span>
+                                        <span className="font-medium text-slate-900">{trackingData.distance_covered_km} km</span>
+                                    </div>
+                                    {trackingData.eta && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-600">ETA:</span>
+                                            <span className="font-medium text-slate-900">{new Date(trackingData.eta).toLocaleDateString()}</span>
+                                        </div>
+                                    )}
+                                </div>
 
-                        <div className="space-y-2">
-                            <Label>Destination Location</Label>
-                            <Select value={destinationCity} onValueChange={setDestinationCity} disabled={isTracking}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Destination City" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.keys(CITIES).map(city => (
-                                        <SelectItem key={city} value={city}>{city}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                                {!isTracking ? (
+                                    <Button
+                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                        onClick={handleStartTracking}
+                                        disabled={trackingData.status === 'Delivered'}
+                                    >
+                                        <PlayCircle className="w-4 h-4 mr-2" />
+                                        Start Tracking
+                                    </Button>
+                                ) : (
+                                    <Button className="w-full bg-red-600 hover:bg-red-700" onClick={handleStopTracking}>
+                                        <StopCircle className="w-4 h-4 mr-2" />
+                                        Stop Tracking
+                                    </Button>
+                                )}
 
-                        {!isTracking ? (
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleStartTracking}>
-                                <PlayCircle className="w-4 h-4 mr-2" />
-                                Start Tracking
-                            </Button>
-                        ) : (
-                            <Button className="w-full bg-red-600 hover:bg-red-700" onClick={handleStopTracking}>
-                                <StopCircle className="w-4 h-4 mr-2" />
-                                Stop Tracking
-                            </Button>
-                        )}
-
-                        {isTracking && (
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-3">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">Status:</span>
-                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">In Transit</Badge>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">Progress:</span>
-                                    <span className="font-medium text-slate-900">{Math.round(progress)}%</span>
-                                </div>
-                                <div className="w-full bg-blue-200 rounded-full h-2">
-                                    <div
-                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                        style={{ width: `${progress}%` }}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">ETA:</span>
-                                    <span className="font-medium text-slate-900">{eta?.toLocaleDateString()}</span>
-                                </div>
-                            </div>
+                                {isTracking && (
+                                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-3">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-600">Progress:</span>
+                                            <span className="font-medium text-slate-900">{Math.round(progress)}%</span>
+                                        </div>
+                                        <div className="w-full bg-blue-200 rounded-full h-2">
+                                            <div
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-600">Speed:</span>
+                                            <span className="font-medium text-slate-900">{trackingData.speed_kmh || 60} km/h</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -365,40 +402,59 @@ export default function MaterialTracking() {
                             />
                             <MapResizer />
 
-                            {sourceCity && (
-                                <Marker position={CITIES[sourceCity]} icon={pinIcon}>
-                                    <Popup>Source: {sourceCity}</Popup>
-                                </Marker>
-                            )}
-
-                            {destinationCity && (
-                                <Marker position={CITIES[destinationCity]} icon={pinIcon}>
-                                    <Popup>Destination: {destinationCity}</Popup>
-                                </Marker>
-                            )}
-
-                            {truckPosition && (
-                                <Marker position={truckPosition} icon={truckIcon}>
-                                    <Popup>
-                                        <div className="text-sm">
-                                            <p className="font-bold">Project ID: {selectedProjectId}</p>
-                                            <p>Status: In Transit</p>
-                                            <p>Speed: 65 km/h</p>
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            )}
-
-                            {sourceCity && destinationCity && isTracking && (
+                            {trackingData && (
                                 <>
+                                    {/* Source Marker */}
+                                    <Marker position={[trackingData.source_location.lat, trackingData.source_location.lng]} icon={pinIcon}>
+                                        <Popup>
+                                            <div className="text-sm">
+                                                <p className="font-bold">Source</p>
+                                                <p>{trackingData.source_location.address}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+
+                                    {/* Destination Marker */}
+                                    <Marker position={[trackingData.destination_location.lat, trackingData.destination_location.lng]} icon={pinIcon}>
+                                        <Popup>
+                                            <div className="text-sm">
+                                                <p className="font-bold">Destination</p>
+                                                <p>{trackingData.destination_location.address}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+
+                                    {/* Current Location (Truck) */}
+                                    {trackingData.current_location && (
+                                        <Marker position={[trackingData.current_location.lat, trackingData.current_location.lng]} icon={truckIcon}>
+                                            <Popup>
+                                                <div className="text-sm">
+                                                    <p className="font-bold">Tracking ID: {trackingData.tracking_id}</p>
+                                                    <p>Status: {trackingData.status}</p>
+                                                    <p>Speed: {trackingData.speed_kmh || 60} km/h</p>
+                                                    <p>Material: {trackingData.order?.material_name}</p>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
+                                    )}
+
+                                    {/* Route Line */}
                                     <Polyline
-                                        positions={getActiveRoute()}
+                                        positions={[
+                                            [trackingData.source_location.lat, trackingData.source_location.lng],
+                                            [trackingData.destination_location.lat, trackingData.destination_location.lng]
+                                        ]}
                                         color="#3b82f6"
                                         weight={4}
                                         opacity={0.6}
                                         dashArray="10, 10"
                                     />
-                                    <RouteFitter source={CITIES[sourceCity]} destination={CITIES[destinationCity]} route={getActiveRoute()} />
+
+                                    <RouteFitter
+                                        source={[trackingData.source_location.lat, trackingData.source_location.lng]}
+                                        destination={[trackingData.destination_location.lat, trackingData.destination_location.lng]}
+                                        route={null}
+                                    />
                                 </>
                             )}
                         </MapContainer>

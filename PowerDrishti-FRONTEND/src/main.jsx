@@ -15,6 +15,7 @@ import Report from './pages/Report.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
 import MonthWiseForecast from './pages/MonthlyForecast'
 import BOQViewer from './pages/PredictedMaterialsViewer.jsx'
+import CarbonTracking from './pages/CarbonTracking'
 
 
 const router = createBrowserRouter(
@@ -29,9 +30,10 @@ const router = createBrowserRouter(
         <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
         <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
-        <Route path="/report" element={<Layout><Report /></Layout>} />
+        <Route path="/reports" element={<Layout><Report /></Layout>} />
         <Route path="/monthly/:projectId" element={<Layout><MonthWiseForecast /></Layout>} />
         <Route path="/predicted-materials" element={<Layout><BOQViewer /></Layout>} />
+        <Route path="/carbon-tracking" element={<Layout><CarbonTracking /></Layout>} />
       </Route>
     </Route>
   )
