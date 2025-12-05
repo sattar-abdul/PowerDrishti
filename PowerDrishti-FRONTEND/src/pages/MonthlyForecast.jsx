@@ -357,85 +357,92 @@ const MonthWiseForecast = () => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {monthData.materials.map((material) => (
-                                            <TableRow key={material.id}>
-                                                <TableCell className="font-medium">{material.name}</TableCell>
-                                                <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
-                                                <TableCell>
-                                                    {(() => {
-                                                        const qtyInfo = getQuantityToOrder(material.id, material.quantity);
-                                                        if (!qtyInfo.hasInventory) {
-                                                            return qtyInfo.predicted.toLocaleString();
-                                                        }
-                                                        return (
-                                                            <div className="flex flex-col">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="line-through text-gray-400 text-sm">
-                                                                        {qtyInfo.predicted.toLocaleString()}
-                                                                    </span>
-                                                                    <span className="text-gray-500"></span>
-                                                                    <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
-                                                                        {qtyInfo.toOrder === 0
-                                                                            ? "Sufficient"
-                                                                            : qtyInfo.toOrder.toLocaleString()}
-                                                                    </span>
+                                        {monthData.materials
+                                            .sort((a, b) => {
+                                                const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+                                                const priorityA = getMaterialPriority(a.id);
+                                                const priorityB = getMaterialPriority(b.id);
+                                                return priorityOrder[priorityA] - priorityOrder[priorityB];
+                                            })
+                                            .map((material) => (
+                                                <TableRow key={material.id}>
+                                                    <TableCell className="font-medium">{material.name}</TableCell>
+                                                    <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
+                                                    <TableCell>
+                                                        {(() => {
+                                                            const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                            if (!qtyInfo.hasInventory) {
+                                                                return qtyInfo.predicted.toLocaleString();
+                                                            }
+                                                            return (
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="line-through text-gray-400 text-sm">
+                                                                            {qtyInfo.predicted.toLocaleString()}
+                                                                        </span>
+                                                                        <span className="text-gray-500"></span>
+                                                                        <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
+                                                                            {qtyInfo.toOrder === 0
+                                                                                ? "Sufficient"
+                                                                                : qtyInfo.toOrder.toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                                        Available: {qtyInfo.available.toLocaleString()}
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-xs text-gray-500 mt-0.5">
-                                                                    Available: {qtyInfo.available.toLocaleString()}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </TableCell>
-                                                <TableCell>{material.unit}</TableCell>
-                                                <TableCell>
-                                                    {material.ordered ? (
-                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                            <CheckCircle className="w-3 h-3 mr-1" /> Ordered
-                                                            {material.orderDate && (
-                                                                <span className="text-xs ml-2">({material.orderDate})</span>
-                                                            )}
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                                            <AlertTriangle className="w-3 h-3 mr-1" /> Pending
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {(() => {
-                                                        const qtyInfo = getQuantityToOrder(material.id, material.quantity);
-                                                        const isSufficient = qtyInfo.hasInventory && qtyInfo.toOrder === 0;
-                                                        return (
-                                                            <Button
-                                                                size="sm"
-                                                                variant={material.ordered || isSufficient ? "outline" : "default"}
-                                                                onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                                disabled={material.ordered || isSufficient}
-                                                                className={material.ordered ? "bg-green-50 hover:bg-green-50" : isSufficient ? "bg-gray-100 hover:bg-gray-100 cursor-not-allowed" : ""}
-                                                            >
-                                                                {material.ordered ? (
-                                                                    <>
-                                                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                                                        Ordered
-                                                                    </>
-                                                                ) : isSufficient ? (
-                                                                    <>
-                                                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                                                        Sufficient Stock
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <ShoppingCart className="w-3 h-3 mr-1" />
-                                                                        Order Now
-                                                                    </>
+                                                            );
+                                                        })()}
+                                                    </TableCell>
+                                                    <TableCell>{material.unit}</TableCell>
+                                                    <TableCell>
+                                                        {material.ordered ? (
+                                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                                <CheckCircle className="w-3 h-3 mr-1" /> Ordered
+                                                                {material.orderDate && (
+                                                                    <span className="text-xs ml-2">({material.orderDate})</span>
                                                                 )}
-                                                            </Button>
-                                                        );
-                                                    })()}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                                                <AlertTriangle className="w-3 h-3 mr-1" /> Pending
+                                                            </Badge>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {(() => {
+                                                            const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                            const isSufficient = qtyInfo.hasInventory && qtyInfo.toOrder === 0;
+                                                            return (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant={material.ordered || isSufficient ? "outline" : "default"}
+                                                                    onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                    disabled={material.ordered || isSufficient}
+                                                                    className={material.ordered ? "bg-green-50 hover:bg-green-50" : isSufficient ? "bg-gray-100 hover:bg-gray-100 cursor-not-allowed" : ""}
+                                                                >
+                                                                    {material.ordered ? (
+                                                                        <>
+                                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                                            Ordered
+                                                                        </>
+                                                                    ) : isSufficient ? (
+                                                                        <>
+                                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                                            Sufficient Stock
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                            Order Now
+                                                                        </>
+                                                                    )}
+                                                                </Button>
+                                                            );
+                                                        })()}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
                                     </TableBody>
                                 </Table>
                             </CardContent>
