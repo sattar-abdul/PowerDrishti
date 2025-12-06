@@ -86,6 +86,20 @@ const projectSchema = Schema({
         default: 0
     },
 
+    // 5. Location Information
+    location: {
+        lat: {
+            type: Number
+        },
+        lng: {
+            type: Number
+        }
+    },
+    location_set: {
+        type: Boolean,
+        default: false
+    },
+
     // ML Forecast Results (kept from previous version)
     estimated_cost: {
         type: Number
