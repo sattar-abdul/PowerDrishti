@@ -8,6 +8,7 @@ import { InventoryRouter } from './routes/inventoryRoutes.js';
 import { BOQRouter } from './routes/boqRoutes.js';
 import { ProcurementRouter } from './routes/procurementRoutes.js';
 import { TrackingRouter } from './routes/trackingRoutes.js';
+import SupplierRouter from './routes/supplierRoutes.js';
 
 dotenv.config()
 
@@ -27,6 +28,7 @@ app.use('/api/inventory', InventoryRouter);
 app.use('/api/boq', BOQRouter);
 app.use('/api/procurement', ProcurementRouter);
 app.use('/api/tracking', TrackingRouter);
+app.use('/api/suppliers', SupplierRouter);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });

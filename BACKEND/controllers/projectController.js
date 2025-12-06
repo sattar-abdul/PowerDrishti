@@ -227,8 +227,40 @@ const updateProjectPhase = asyncHandler(async (req, res) => {
     res.status(200).json(updatedProject);
 });
 
+// @desc    Update project location
+// @route   PATCH /api/projects/:id/location
+// @access  Private
+const updateProjectLocation = asyncHandler(async (req, res) => {
+    const { lat, lng } = req.body;
+
+    if (!lat || !lng) {
+        res.status(400);
+        throw new Error('Please provide latitude and longitude');
+    }
+
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+        res.status(404);
+        throw new Error('Project not found');
+    }
+
+    // Verify user owns the project
+    if (project.user.toString() !== req.user.id) {
+        res.status(403);
+        throw new Error('User not authorized');
+    }
+
+    project.location = { lat, lng };
+    project.location_set = true;
+    const updatedProject = await project.save();
+
+    res.status(200).json(updatedProject);
+});
+
 export {
     createProject,
     getProjects,
     updateProjectPhase,
+    updateProjectLocation,
 };

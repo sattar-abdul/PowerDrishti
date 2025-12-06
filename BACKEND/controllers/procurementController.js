@@ -30,6 +30,7 @@ const createOrder = asyncHandler(async (req, res) => {
         month_number,
         expected_delivery_days = 14,
         supplier_name,
+        supplier_id,
         cost,
         priority,
         source_city = "Mumbai",
@@ -37,7 +38,7 @@ const createOrder = asyncHandler(async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!projectId || !material_name || !material_id || !quantity || !unit || !month_number) {
+    if (!projectId || !material_name || !material_id || !quantity || !unit) {
         res.status(400);
         throw new Error('Please provide all required fields');
     }
@@ -78,10 +79,39 @@ const createOrder = asyncHandler(async (req, res) => {
         priority: priority || 'Medium'
     });
 
-    // Determine destination based on project location
-    const destCity = destination_city || project.district || "Delhi";
-    const sourceLocation = CITIES[source_city] || CITIES["Mumbai"];
-    const destinationLocation = CITIES[destCity] || CITIES["Delhi"];
+    // Determine locations
+    let sourceLocation = CITIES[source_city] || CITIES["Mumbai"];
+    let destinationLocation = CITIES[destination_city] || CITIES["Delhi"];
+    let sourceAddress = `${source_city}, India`;
+    let destAddress = `${destination_city || project.district || "Delhi"}, India`;
+
+    // 1. Get precise source location from Supplier if ID provided
+    if (supplier_id) {
+        try {
+            const { Supplier } = await import('../models/Supplier.js');
+            const supplier = await Supplier.findById(supplier_id);
+            if (supplier && supplier.location) {
+                sourceLocation = {
+                    lat: supplier.location.lat,
+                    lng: supplier.location.lng
+                };
+                sourceAddress = supplier.address;
+            }
+        } catch (error) {
+            console.error("Error fetching supplier location:", error);
+        }
+    }
+
+    // 2. Get precise destination from Project location if set
+    if (project.location_set && project.location) {
+        destinationLocation = {
+            lat: project.location.lat,
+            lng: project.location.lng
+        };
+        destAddress = `${project.district}, ${project.state_region}`;
+    } else if (project.district && CITIES[project.district]) {
+        destinationLocation = CITIES[project.district];
+    }
 
     // Create material tracking entry
     const tracking = await MaterialTracking.create({
@@ -91,17 +121,17 @@ const createOrder = asyncHandler(async (req, res) => {
         current_location: {
             lat: sourceLocation.lat,
             lng: sourceLocation.lng,
-            address: `${source_city}, India`
+            address: sourceAddress
         },
         source_location: {
             lat: sourceLocation.lat,
             lng: sourceLocation.lng,
-            address: `${source_city}, India`
+            address: sourceAddress
         },
         destination_location: {
             lat: destinationLocation.lat,
             lng: destinationLocation.lng,
-            address: `${destCity}, India`
+            address: destAddress
         },
         status: 'Pending',
         eta: expectedDeliveryDate,
@@ -113,7 +143,7 @@ const createOrder = asyncHandler(async (req, res) => {
             location: {
                 lat: sourceLocation.lat,
                 lng: sourceLocation.lng,
-                address: `${source_city}, India`
+                address: sourceAddress
             },
             status: 'Order Placed',
             notes: 'Material order has been placed'

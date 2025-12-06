@@ -30,7 +30,6 @@ const procurementOrderSchema = Schema({
     },
     month_number: {
         type: Number,
-        required: true,
         min: 1
     },
     order_date: {

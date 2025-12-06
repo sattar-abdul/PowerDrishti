@@ -311,7 +311,6 @@ export default function MaterialTracking() {
                     quantity: materialInfo.quantity,
                     unit: materialInfo.unit,
                     supplier_name: selectedSupplier.name,
-                    supplier_id: selectedSupplier._id,
                     expected_delivery_days: selectedSupplier.average_delivery_days || 14,
                     priority: 'High'
                 })
@@ -705,15 +704,17 @@ export default function MaterialTracking() {
                                             </Popup>
                                         </Marker>
 
-                                            <Polyline
-                                                positions={[
-                                                    [selectedSupplier.location.lat, selectedSupplier.location.lng],
-                                                    [projectLocation.lat, projectLocation.lng]
-                                                ]}
-                                                color="#3b82f6"
-                                                weight={4}
-                                                opacity={0.8}
-                                            />
+                                        {/* Route Line */}
+                                        <Polyline
+                                            positions={[
+                                                [selectedSupplier.location.lat, selectedSupplier.location.lng],
+                                                [projectLocation.lat, projectLocation.lng]
+                                            ]}
+                                            color="#3b82f6"
+                                            weight={3}
+                                            opacity={0.7}
+                                            dashArray="10, 10"
+                                        />
 
                                         <RouteFitter
                                             source={[selectedSupplier.location.lat, selectedSupplier.location.lng]}
@@ -906,17 +907,18 @@ export default function MaterialTracking() {
 
                                     <Polyline
                                         positions={[
-                                            [trackingData.source_location.lat, trackingData.source_location.lng],
-                                            [trackingData.destination_location.lat, trackingData.destination_location.lng]
+                                            [selectedSupplier.location.lat, selectedSupplier.location.lng],
+                                            [projectLocation.lat, projectLocation.lng]
                                         ]}
                                         color="#3b82f6"
-                                        weight={4}
-                                        opacity={0.8}
+                                        weight={3}
+                                        opacity={0.7}
+                                        dashArray="10, 10"
                                     />
 
                                     <RouteFitter
-                                        source={[trackingData.source_location.lat, trackingData.source_location.lng]}
-                                        destination={[trackingData.destination_location.lat, trackingData.destination_location.lng]}
+                                        source={[selectedSupplier.location.lat, selectedSupplier.location.lng]}
+                                        destination={[projectLocation.lat, projectLocation.lng]}
                                         route={null}
                                     />
                                 </>
