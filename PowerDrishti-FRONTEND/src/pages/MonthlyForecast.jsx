@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck, Info } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck, Info, ChevronDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LOCAL_URL } from "@/api/api";
 import { getTooltipForMaterial } from "@/constants/materialTooltips";
@@ -19,12 +20,13 @@ const MonthWiseForecast = () => {
     const [projectName, setProjectName] = useState("");
     const [forecastData, setForecastData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState("schedule");
+    const [activeTab, setActiveTab] = useState("monthwise");
     const [currentPhase, setCurrentPhase] = useState("Phase 1 - Pre-Construction / Early Civil Works");
     const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
     const [inventoryData, setInventoryData] = useState({});
     const [orders, setOrders] = useState({}); // Store orders by materialId
     const [isOrdering, setIsOrdering] = useState(false);
+    const [expandedMonths, setExpandedMonths] = useState({ 1: true }); // Month 1 expanded by default
 
     // Phase-to-material priority mapping
     const PHASE_MATERIALS = {
@@ -360,7 +362,7 @@ const MonthWiseForecast = () => {
                                 <Button
                                     key={phase}
                                     variant={currentPhase === phase ? "default" : "outline"}
-                                    className={`h-auto min-h-[80px] py-3 px-3 text-xs whitespace-normal ${currentPhase === phase
+                                    className={`h-auto min-h-[80px] py-3 px-3 text-s whitespace-normal ${currentPhase === phase
                                         ? "bg-blue-600 hover:bg-blue-700 text-white"
                                         : "hover:bg-blue-50"
                                         }`}
@@ -385,24 +387,32 @@ const MonthWiseForecast = () => {
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="schedule">Monthly Schedule</TabsTrigger>
-                    <TabsTrigger value="overview">Project Overview</TabsTrigger>
+                    <TabsTrigger value="monthwise">Month-wise Schedule</TabsTrigger>
+                    <TabsTrigger value="phasewise">Phase-wise Schedule</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="schedule" className="space-y-4">
+                <TabsContent value="monthwise" className="space-y-4">
                     {forecastData.map((monthData) => (
-                        <Card key={monthData.monthNumber} className="border-slate-200">
-                            <CardHeader className="bg-slate-50 border-b">
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Calendar className="w-5 h-5 text-blue-600" />
-                                            {monthData.month}
-                                        </CardTitle>
-                                    </div>
+                        <Collapsible 
+                            key={monthData.monthNumber}
+                            open={expandedMonths[monthData.monthNumber] || false}
+                            onOpenChange={(isOpen) => setExpandedMonths(prev => ({ ...prev, [monthData.monthNumber]: isOpen }))}
+                        >
+                            <Card className="border-slate-200">
+                                <CardHeader className="bg-slate-50 border-b">
+                                    <div className="flex justify-between items-center">
+                                        <CollapsibleTrigger asChild>
+                                            <div className="flex items-center gap-2 cursor-pointer flex-1">
+                                                <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform ${expandedMonths[monthData.monthNumber] ? 'transform rotate-0' : 'transform -rotate-90'}`} />
+                                                <CardTitle className="flex items-center gap-2">
+                                                    <Calendar className="w-5 h-5 text-blue-600" />
+                                                    {monthData.month}
+                                                </CardTitle>
+                                            </div>
+                                        </CollapsibleTrigger>
                                     <div className="flex items-center gap-3">
                                         {getStatusBadge(monthData.overallStatus)}
-                                        <Button
+                                        {/* <Button
                                             size="sm"
                                             onClick={() => handleOrderAllForMonth(monthData.monthNumber)}
                                             disabled={monthData.overallStatus === "Ordered" || isOrdering}
@@ -410,11 +420,12 @@ const MonthWiseForecast = () => {
                                         >
                                             <ShoppingCart className="w-4 h-4 mr-2" />
                                             Order All
-                                        </Button>
+                                        </Button> */}
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-0">
+                                <CollapsibleContent>
+                                    <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -429,7 +440,31 @@ const MonthWiseForecast = () => {
                                     <TableBody>
                                         {monthData.materials.map((material) => (
                                             <TableRow key={material.id}>
-                                                <TableCell className="font-medium">{material.name}</TableCell>
+                                                <TableCell className="font-medium">
+                                                    {(() => {
+                                                        const priority = getMaterialPriority(material.id);
+                                                        const tooltip = getTooltipForMaterial(material.id);
+
+                                                        if (priority === "High" && tooltip) {
+                                                            return (
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex items-center gap-2 cursor-help">
+                                                                                <span>{material.name}</span>
+                                                                                <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent className="max-w-xs">
+                                                                            <p className="text-sm">{tooltip}</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            );
+                                                        }
+                                                        return material.name;
+                                                    })()}
+                                                </TableCell>
                                                 <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
                                                 <TableCell>{(() => {
                                                     const qtyInfo = getQuantityToOrder(material.id, material.quantity);
@@ -497,13 +532,17 @@ const MonthWiseForecast = () => {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </CardContent>
-                        </Card>
+                                    </CardContent>
+                                </CollapsibleContent>
+                            </Card>
+                        </Collapsible>
                     ))}
                 </TabsContent>
 
-                <TabsContent value="overview">
-                    <Card>
+                <TabsContent value="phasewise">
+                    {/* Phase-wise Schedule - TODO  */}
+
+                    {/* <Card>
                         <CardHeader>
                             <CardTitle>Project Summary</CardTitle>
                         </CardHeader>
@@ -544,7 +583,7 @@ const MonthWiseForecast = () => {
                                 </Card>
                             </div>
                         </CardContent>
-                    </Card>
+                    </Card> */}
                 </TabsContent>
             </Tabs>
         </div>
