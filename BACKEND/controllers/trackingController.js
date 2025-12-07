@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import { MaterialTracking } from '../models/MaterialTracking.js';
 import { ProcurementOrder } from '../models/ProcurementOrder.js';
 import { Project } from '../models/Project.js';
+import { Inventory } from '../models/Inventory.js';
 
 // @desc    Get tracking info by order ID
 // @route   GET /api/tracking/order/:orderId
@@ -168,16 +169,28 @@ const updateTrackingLocation = asyncHandler(async (req, res) => {
     await tracking.save();
 
     // Update order status if delivered
+    let inventoryUpdate = null;
     if (status === 'Delivered') {
         const order = await ProcurementOrder.findById(tracking.order);
         if (order) {
             order.status = 'Delivered';
             order.actual_delivery_date = new Date();
             await order.save();
+
+            // Update inventory
+            inventoryUpdate = await updateInventoryOnDelivery(
+                tracking.project,
+                order.material_name,
+                order.quantity,
+                order.unit
+            );
         }
     }
 
-    res.status(200).json(tracking);
+    res.status(200).json({
+        ...tracking.toObject(),
+        inventoryUpdate
+    });
 });
 
 // @desc    Start tracking (simulate movement)
@@ -222,6 +235,57 @@ const startTracking = asyncHandler(async (req, res) => {
 
     res.status(200).json(tracking);
 });
+
+// Helper function to update inventory on delivery
+async function updateInventoryOnDelivery(projectId, materialName, quantity, unit) {
+    try {
+        // Find or create inventory for the project
+        let inventory = await Inventory.findOne({ project: projectId });
+
+        if (!inventory) {
+            // If no inventory exists, we can't update it
+            console.log('No inventory found for project:', projectId);
+            return null;
+        }
+
+        // Normalize material name for matching
+        const normalizeName = (name) => {
+            return name.toLowerCase()
+                .replace(/\s+/g, '_')
+                .replace(/[()]/g, '');
+        };
+
+        const normalizedMaterialName = normalizeName(materialName);
+
+        // Find matching inventory item
+        let inventoryItem = inventory.items.find(item => {
+            const normalizedItemName = normalizeName(item.item_name);
+            // Check if the material name is contained in the item name or vice versa
+            return normalizedItemName.includes(normalizedMaterialName) ||
+                normalizedMaterialName.includes(normalizedItemName);
+        });
+
+        if (inventoryItem) {
+            // Update quantity
+            inventoryItem.quantity += quantity;
+            inventory.last_updated = Date.now();
+            await inventory.save();
+
+            console.log(`Inventory updated: ${inventoryItem.item_name} += ${quantity} ${unit}`);
+            return {
+                item_name: inventoryItem.item_name,
+                new_quantity: inventoryItem.quantity,
+                unit: inventoryItem.unit
+            };
+        } else {
+            console.log(`No matching inventory item found for: ${materialName}`);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error updating inventory:', error);
+        return null;
+    }
+}
 
 // Helper function to calculate distance
 function calculateDistance(point1, point2) {

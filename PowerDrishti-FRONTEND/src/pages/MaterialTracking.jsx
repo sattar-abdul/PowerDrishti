@@ -86,37 +86,37 @@ function generateCurvedRoute(start, end, numPoints = 50) {
     const points = [];
     const [startLat, startLng] = start;
     const [endLat, endLng] = end;
-    
+
     // Calculate the midpoint
     const midLat = (startLat + endLat) / 2;
     const midLng = (startLng + endLng) / 2;
-    
+
     // Calculate the perpendicular offset for the curve
     const dx = endLng - startLng;
     const dy = endLat - startLat;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    
+
     // Create a curve with offset proportional to distance
     const curvature = distance * 0.2;
     const offsetLat = -dx * curvature;
     const offsetLng = dy * curvature;
-    
+
     // Control point for the bezier curve
     const controlLat = midLat + offsetLat;
     const controlLng = midLng + offsetLng;
-    
+
     // Generate points along the quadratic bezier curve
     for (let i = 0; i <= numPoints; i++) {
         const t = i / numPoints;
         const t1 = 1 - t;
-        
+
         // Quadratic bezier formula
         const lat = t1 * t1 * startLat + 2 * t1 * t * controlLat + t * t * endLat;
         const lng = t1 * t1 * startLng + 2 * t1 * t * controlLng + t * t * endLng;
-        
+
         points.push([lat, lng]);
     }
-    
+
     return points;
 }
 
@@ -147,7 +147,7 @@ export default function MaterialTracking() {
     // Animation ref
     const requestRef = useRef();
     const startTimeRef = useRef();
-    const duration = 60000; // 60 seconds for simulation
+    const duration = 8000; // 8 seconds for simulation
 
     useEffect(() => {
         const initializePage = async () => {
@@ -242,13 +242,13 @@ export default function MaterialTracking() {
             // Fetch suppliers
             console.log(projectLat, projectLng);
             console.log(materialId);
-            
+
             const url = projectLat && projectLng
                 ? `${LOCAL_URL}/api/suppliers/material/${materialId}?projectLat=${projectLat}&projectLng=${projectLng}`
                 : `${LOCAL_URL}/api/suppliers/material/${materialId}`;
 
             console.log(url);
-            
+
 
             const suppliersResponse = await fetch(url, {
                 headers: {
@@ -370,8 +370,13 @@ export default function MaterialTracking() {
                 }
             });
             if (response.ok) {
-                const data = await response.json();
-                setTrackingData(data);
+                const data = await response.json(); setTrackingData(data);
+
+                // Show inventory update notification when delivered
+                if (data.inventoryUpdate) {
+                    const { item_name, new_quantity, unit } = data.inventoryUpdate;
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                }
                 setSelectedOrder(data.order?._id);
             }
         } catch (error) {
@@ -388,8 +393,13 @@ export default function MaterialTracking() {
                 }
             });
             if (response.ok) {
-                const data = await response.json();
-                setTrackingData(data);
+                const data = await response.json(); setTrackingData(data);
+
+                // Show inventory update notification when delivered
+                if (data.inventoryUpdate) {
+                    const { item_name, new_quantity, unit } = data.inventoryUpdate;
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                }
             }
         } catch (error) {
             console.error("Failed to fetch tracking data", error);
@@ -411,8 +421,13 @@ export default function MaterialTracking() {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                setTrackingData(data);
+                const data = await response.json(); setTrackingData(data);
+
+                // Show inventory update notification when delivered
+                if (data.inventoryUpdate) {
+                    const { item_name, new_quantity, unit } = data.inventoryUpdate;
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                }
                 setIsTracking(true);
                 setProgress(0);
 
@@ -470,7 +485,7 @@ export default function MaterialTracking() {
                 body: JSON.stringify({
                     lat,
                     lng,
-                    status: status || (progress >= 1 ? 'Delivered' : 'In Transit'),
+                    status: status || (progress >= 1 ? 'Delivered' : progress >= 0.33 ? 'In Transit' : 'Ordered'),
                     speed_kmh: 60,
                     notes: `Progress: ${(progress * 100).toFixed(0)}%`
                 })
@@ -479,6 +494,12 @@ export default function MaterialTracking() {
             if (response.ok) {
                 const data = await response.json();
                 setTrackingData(data);
+
+                // Show inventory update notification when delivered
+                if (data.inventoryUpdate) {
+                    const { item_name, new_quantity, unit } = data.inventoryUpdate;
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                }
             }
         } catch (error) {
             console.error("Failed to update location", error);
@@ -593,8 +614,8 @@ export default function MaterialTracking() {
                                                     <div
                                                         key={supplier._id}
                                                         className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedSupplier?._id === supplier._id
-                                                                ? 'border-blue-500 bg-blue-50'
-                                                                : 'border-slate-200 hover:border-blue-300'
+                                                            ? 'border-blue-500 bg-blue-50'
+                                                            : 'border-slate-200 hover:border-blue-300'
                                                             }`}
                                                         onClick={() => setSelectedSupplier(supplier)}
                                                     >
@@ -714,15 +735,15 @@ export default function MaterialTracking() {
                                             </Popup>
                                         </Marker>
 
-                                            <Polyline
-                                                positions={[
-                                                    [selectedSupplier.location.lat, selectedSupplier.location.lng],
-                                                    [projectLocation.lat, projectLocation.lng]
-                                                ]}
-                                                color="#3b82f6"
-                                                weight={4}
-                                                opacity={0.8}
-                                            />
+                                        <Polyline
+                                            positions={[
+                                                [selectedSupplier.location.lat, selectedSupplier.location.lng],
+                                                [projectLocation.lat, projectLocation.lng]
+                                            ]}
+                                            color="#3b82f6"
+                                            weight={4}
+                                            opacity={0.8}
+                                        />
 
                                         <RouteFitter
                                             source={[selectedSupplier.location.lat, selectedSupplier.location.lng]}
