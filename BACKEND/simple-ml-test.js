@@ -13,7 +13,8 @@ const testData = JSON.stringify({
     "logistics_difficulty_score": 4,
     "substation_type": "None",
     "no_of_bays": 0,
-    "project_budget_in_crores": 180
+    "project_budget_in_crores": 180,
+    "months": 12
 });
 
 const options = {
