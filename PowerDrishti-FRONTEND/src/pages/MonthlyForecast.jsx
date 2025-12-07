@@ -69,8 +69,40 @@ const MonthWiseForecast = () => {
         if (projectId) {
             fetchMonthlyBOQ();
             fetchInventory();
+            fetchProcurementOrders();
         }
     }, [projectId]);
+
+    const fetchProcurementOrders = async () => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/procurement/orders/${projectId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const ordersData = await response.json();
+                // Create a map of material_id + month_number to order info
+                const ordersMap = {};
+                ordersData.forEach(order => {
+                    // Use combination of material_id and month_number as key
+                    const key = `${order.material_id}_month_${order.month_number}`;
+                    ordersMap[key] = {
+                        ordered: true,
+                        orderDate: new Date(order.order_date).toLocaleDateString(),
+                        trackingId: order.tracking_id,
+                        orderId: order._id,
+                        status: order.status,
+                        monthNumber: order.month_number
+                    };
+                });
+                setOrders(ordersMap);
+            }
+        } catch (error) {
+            console.error('Error fetching procurement orders:', error);
+            setOrders({});
+        }
+    };
 
     const fetchMonthlyBOQ = async () => {
         setIsLoading(true);
@@ -176,14 +208,15 @@ const MonthWiseForecast = () => {
         // Find the material details
         const monthData = forecastData.find(m => m.monthNumber === monthNumber);
         const material = monthData?.materials.find(m => m.id === materialId);
+        console.log("material",material);
 
         if (!material) {
             alert('Material not found');
             return;
         }
 
-        // Redirect to Material Tracking page with material and project info
-        navigate(`/material-tracking?projectId=${projectId}&materialId=${materialId}&materialName=${encodeURIComponent(material.name)}&quantity=${material.quantity}&unit=${material.unit}`);
+        // Redirect to Material Tracking page with material, project, and MONTH info
+        navigate(`/material-tracking?projectId=${projectId}&materialId=${materialId}&materialName=${encodeURIComponent(material.name)}&quantity=${material.quantity}&unit=${material.unit}&monthNumber=${monthNumber}`);
     };
 
     const handleOrderAllForMonth = async (monthNumber) => {
@@ -423,42 +456,58 @@ const MonthWiseForecast = () => {
                                                         })()}</TableCell>
                                                         <TableCell>{material.unit}</TableCell>
                                                         <TableCell>
-                                                            {material.ordered ? (
-                                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                                    <CheckCircle className="w-3 h-3 mr-1" /> Ordered
-                                                                    {material.orderDate && (
-                                                                        <span className="text-xs ml-2">({material.orderDate})</span>
-                                                                    )}
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                                                    <AlertTriangle className="w-3 h-3 mr-1" /> Pending
-                                                                </Badge>
-                                                            )}
+                                                            {(() => {
+                                                                // Use month-specific key
+                                                                const orderKey = `${material.id}_month_${monthData.monthNumber}`;
+                                                                const orderInfo = orders[orderKey];
+                                                                if (orderInfo?.ordered) {
+                                                                    return (
+                                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                                            <CheckCircle className="w-3 h-3 mr-1" /> Ordered
+                                                                            {orderInfo.orderDate && (
+                                                                                <span className="text-xs ml-2">({orderInfo.orderDate})</span>
+                                                                            )}
+                                                                        </Badge>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                                                        <AlertTriangle className="w-3 h-3 mr-1" /> Pending
+                                                                    </Badge>
+                                                                );
+                                                            })()}
                                                         </TableCell>
                                                         <TableCell>
                                                             <div className="flex gap-2">
-                                                                {!material.ordered ? (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                                        disabled={isOrdering}
-                                                                        className="bg-blue-600 hover:bg-blue-700"
-                                                                    >
-                                                                        <ShoppingCart className="w-3 h-3 mr-1" />
-                                                                        Order Now
-                                                                    </Button>
-                                                                ) : (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() => handleTrackMaterial(material.trackingId)}
-                                                                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                                                                    >
-                                                                        <Truck className="w-3 h-3 mr-1" />
-                                                                        Track Now
-                                                                    </Button>
-                                                                )}
+                                                                {(() => {
+                                                                    // Use month-specific key
+                                                                    const orderKey = `${material.id}_month_${monthData.monthNumber}`;
+                                                                    const orderInfo = orders[orderKey];
+                                                                    if (orderInfo?.ordered && orderInfo?.trackingId) {
+                                                                        return (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleTrackMaterial(orderInfo.trackingId)}
+                                                                                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                                                            >
+                                                                                <Truck className="w-3 h-3 mr-1" />
+                                                                                Track Now
+                                                                            </Button>
+                                                                        );
+                                                                    }
+                                                                    return (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                            disabled={isOrdering}
+                                                                            className="bg-blue-600 hover:bg-blue-700"
+                                                                        >
+                                                                            <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                            Order Now
+                                                                        </Button>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>

@@ -157,6 +157,7 @@ export default function MaterialTracking() {
             const quantity = searchParams.get('quantity');
             const unit = searchParams.get('unit');
             const projId = searchParams.get('projectId');
+            const monthNum = searchParams.get('monthNumber');
 
             if (materialId && materialName && projId) {
                 // Ordering mode
@@ -165,7 +166,8 @@ export default function MaterialTracking() {
                     id: materialId,
                     name: materialName,
                     quantity: parseFloat(quantity),
-                    unit: unit
+                    unit: unit,
+                    monthNumber: monthNum ? parseInt(monthNum) : null
                 });
                 setProjectId(projId);
 
@@ -238,9 +240,15 @@ export default function MaterialTracking() {
             }
 
             // Fetch suppliers
+            console.log(projectLat, projectLng);
+            console.log(materialId);
+            
             const url = projectLat && projectLng
                 ? `${LOCAL_URL}/api/suppliers/material/${materialId}?projectLat=${projectLat}&projectLng=${projectLng}`
                 : `${LOCAL_URL}/api/suppliers/material/${materialId}`;
+
+            console.log(url);
+            
 
             const suppliersResponse = await fetch(url, {
                 headers: {
@@ -310,6 +318,7 @@ export default function MaterialTracking() {
                     material_id: materialInfo.id,
                     quantity: materialInfo.quantity,
                     unit: materialInfo.unit,
+                    month_number: materialInfo.monthNumber,
                     supplier_name: selectedSupplier.name,
                     supplier_id: selectedSupplier._id,
                     expected_delivery_days: selectedSupplier.average_delivery_days || 14,

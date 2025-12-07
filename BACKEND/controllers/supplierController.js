@@ -19,8 +19,14 @@ const MATERIAL_CATEGORY_MAP = {
 
     // Insulators
     'Insulators_units': 'Insulators',
+    'Disc_Insulators_units': 'Insulators',
+    'Polymer_Insulators_units': 'Insulators',
+    'Pin_Insulators_units': 'Insulators',
+    'Long_Rod_Insulators_units': 'Insulators',
     'Earth_Rods_units': 'Insulators',
     'Earthing_Mat_sets': 'Insulators',
+    'Longrod_Insulators_units': 'Insulators',  // Add this
+    
 
     // Civil Materials
     'Foundation_Concrete_m3': 'Civil Materials',
@@ -43,7 +49,7 @@ const MATERIAL_CATEGORY_MAP = {
     'Busbar_MT': 'Cables',
 
     // Safety Equipment
-    'Lighting_Protection_sets': 'Safety Equipment',
+    'Lightning_Protection_sets': 'Safety Equipment',
     'Vibration_Dampers_pcs': 'Safety Equipment',
     'Spacer_Dampers_pcs': 'Safety Equipment',
     'Clamp_Fittings_sets': 'Safety Equipment'
