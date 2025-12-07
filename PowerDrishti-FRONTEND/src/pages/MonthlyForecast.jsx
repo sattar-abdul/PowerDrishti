@@ -208,15 +208,38 @@ const MonthWiseForecast = () => {
         // Find the material details
         const monthData = forecastData.find(m => m.monthNumber === monthNumber);
         const material = monthData?.materials.find(m => m.id === materialId);
-        console.log("material",material);
+        console.log("material", material);
 
         if (!material) {
             alert('Material not found');
             return;
         }
 
-        // Redirect to Material Tracking page with material, project, and MONTH info
-        navigate(`/material-tracking?projectId=${projectId}&materialId=${materialId}&materialName=${encodeURIComponent(material.name)}&quantity=${material.quantity}&unit=${material.unit}&monthNumber=${monthNumber}`);
+        // Calculate inventory-aware quantity
+        const orderInfo = getQuantityToOrder(materialId, material.quantity);
+
+        // Check if order is needed
+        if (orderInfo.toOrder <= 0) {
+            alert(`No order needed!\n\nRequired: ${orderInfo.predicted} ${material.unit}\nAvailable in inventory: ${orderInfo.available} ${material.unit}\n\nYou have sufficient inventory for this material.`);
+            return;
+        }
+
+        // Show order confirmation with inventory details
+        const confirmOrder = window.confirm(
+            `Order Details:\n\n` +
+            `Material: ${material.name}\n` +
+            `Required: ${orderInfo.predicted} ${material.unit}\n` +
+            `Available in inventory: ${orderInfo.available} ${material.unit}\n` +
+            `Quantity to order: ${orderInfo.toOrder} ${material.unit}\n\n` +
+            `Proceed with order?`
+        );
+
+        if (!confirmOrder) {
+            return;
+        }
+
+        // Redirect to Material Tracking page with ACTUAL quantity to order
+        navigate(`/material-tracking?projectId=${projectId}&materialId=${materialId}&materialName=${encodeURIComponent(material.name)}&quantity=${orderInfo.toOrder}&unit=${material.unit}&monthNumber=${monthNumber}`);
     };
 
     const handleOrderAllForMonth = async (monthNumber) => {
