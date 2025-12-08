@@ -106,50 +106,107 @@ const InventoryManagement = () => {
 
     const handleCsvUpload = (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+            console.log('❌ No file selected');
+            return;
+        }
+
+        console.log('📁 File selected:', file.name);
+        console.log('📊 Current inventory items count:', inventory?.items?.length);
 
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
                 const csv = event.target.result;
+                console.log('📄 CSV content loaded, length:', csv.length);
+
                 const lines = csv.split('\n');
+                console.log('📋 Total lines in CSV:', lines.length);
+                console.log('📋 Header line:', lines[0]);
+
                 const updatedItems = [...inventory.items];
+                let consumptionCount = 0;
 
                 // Skip header row, start from line 1
                 for (let i = 1; i < lines.length && i <= 33; i++) {
                     const line = lines[i].trim();
-                    if (!line) continue;
+                    if (!line) {
+                        console.log(`⏭️  Line ${i}: Empty, skipping`);
+                        continue;
+                    }
 
                     // Parse CSV line properly, handling quoted values
                     const values = line.split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
-                    const [itemName, quantity, unit] = values;
+                    const [itemName, consumptionQty, unit] = values;
 
-                    if (itemName && quantity !== undefined) {
+                    console.log(`\n🔍 Line ${i}:`, { itemName, consumptionQty, unit });
+
+                    if (itemName && consumptionQty !== undefined) {
+                        const consumption = parseFloat(consumptionQty) || 0;
+                        console.log(`   💧 Consumption value:`, consumption);
+
                         // Find matching item by name or update by index
                         const itemIndex = updatedItems.findIndex(item =>
                             item.item_name.toLowerCase() === itemName.toLowerCase()
                         );
 
                         if (itemIndex !== -1) {
-                            updatedItems[itemIndex].quantity = parseFloat(quantity) || 0;
+                            // Subtract consumption from current inventory
+                            const currentQty = updatedItems[itemIndex].quantity || 0;
+                            const newQty = Math.max(0, currentQty - consumption);
+
+                            console.log(`   ✅ Found by name at index ${itemIndex}:`);
+                            console.log(`      Current: ${currentQty} ${updatedItems[itemIndex].unit}`);
+                            console.log(`      Consumption: ${consumption}`);
+                            console.log(`      New: ${newQty} ${unit || updatedItems[itemIndex].unit}`);
+
+                            updatedItems[itemIndex].quantity = newQty;
+                            if (consumption > 0) consumptionCount++;
                             if (unit) {
                                 updatedItems[itemIndex].unit = unit;
                             }
                         } else if (i - 1 < updatedItems.length) {
                             // Update by position if name doesn't match
-                            updatedItems[i - 1].quantity = parseFloat(quantity) || 0;
+                            const posIndex = i - 1;
+                            const currentQty = updatedItems[posIndex].quantity || 0;
+                            const newQty = Math.max(0, currentQty - consumption);
+
+                            console.log(`   ⚠️  Not found by name, using position ${posIndex}:`);
+                            console.log(`      Item: ${updatedItems[posIndex].item_name}`);
+                            console.log(`      Current: ${currentQty} ${updatedItems[posIndex].unit}`);
+                            console.log(`      Consumption: ${consumption}`);
+                            console.log(`      New: ${newQty} ${unit || updatedItems[posIndex].unit}`);
+
+                            updatedItems[posIndex].quantity = newQty;
+                            if (consumption > 0) consumptionCount++;
                             if (unit) {
-                                updatedItems[i - 1].unit = unit;
+                                updatedItems[posIndex].unit = unit;
                             }
+                        } else {
+                            console.log(`   ❌ Could not match item: ${itemName}`);
                         }
+                    } else {
+                        console.log(`   ⚠️  Invalid data - itemName: ${itemName}, consumptionQty: ${consumptionQty}`);
                     }
                 }
 
+                console.log('\n✨ CSV Processing Complete:');
+                console.log(`   Total items updated: ${consumptionCount}`);
+                console.log('   Updated inventory:', updatedItems.slice(0, 5).map(item => ({
+                    name: item.item_name,
+                    qty: item.quantity,
+                    unit: item.unit
+                })));
+
                 setInventory({ ...inventory, items: updatedItems });
-                setMessage({ type: 'success', text: 'CSV data imported successfully!' });
-                setTimeout(() => setMessage(null), 3000);
+                setMessage({
+                    type: 'success',
+                    text: `Consumption data processed! ${consumptionCount} items updated. Click 'Save Inventory' to persist changes.`
+                });
+                setTimeout(() => setMessage(null), 5000);
             } catch (error) {
-                console.error('Error parsing CSV:', error);
+                console.error('❌ Error parsing CSV:', error);
+                console.error('Error stack:', error.stack);
                 setMessage({ type: 'error', text: 'Failed to parse CSV file' });
             }
         };
@@ -220,7 +277,7 @@ const InventoryManagement = () => {
                     <CardHeader className="border-b border-blue-200">
                         <CardTitle className="flex items-center gap-2 text-blue-900">
                             <FileSpreadsheet className="w-5 h-5" />
-                            CSV Import/Export
+                            Upload Consumption Data
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
@@ -230,8 +287,8 @@ const InventoryManagement = () => {
                                     <div className="flex items-center gap-3 p-4 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-100 transition-all">
                                         <Upload className="w-5 h-5 text-blue-600" />
                                         <div>
-                                            <p className="font-medium text-blue-900">Upload CSV File</p>
-                                            <p className="text-sm text-blue-700">Import inventory data from CSV</p>
+                                            <p className="font-medium text-blue-900">Upload Consumption CSV</p>
+                                            <p className="text-sm text-blue-700">Consumption will be deducted from current inventory</p>
                                         </div>
                                     </div>
                                     <input
@@ -256,7 +313,7 @@ const InventoryManagement = () => {
                         </div>
                         <Alert className="mt-4 bg-white border-blue-300">
                             <AlertDescription className="text-blue-800 text-sm">
-                                <strong>CSV Format:</strong> Item Name, Quantity, Unit (e.g., "Conductors (ACSR), 150, km")
+                                <strong>CSV Format:</strong> Item Name, Consumption Quantity, Unit (e.g., "ACSR_Moose_tons, 10, tons"). The consumption values will be subtracted from your current inventory.
                             </AlertDescription>
                         </Alert>
                     </CardContent>

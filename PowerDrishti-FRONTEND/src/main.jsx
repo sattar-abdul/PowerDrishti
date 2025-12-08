@@ -26,14 +26,17 @@ const router = createBrowserRouter(
 
       <Route element={<PrivateRoute />}>
         <Route path="/" element={<Layout><Dashboard /></Layout>} />
-        <Route path="/inventory" element={<Layout><InventoryAnalyzer /></Layout>} />
-        <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
-        <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
-        <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
-        <Route path="/reports" element={<Layout><Report /></Layout>} />
+       <Route path="/inventory" element={<Layout><InventoryAnalyzer /></Layout>} /> 
+        
+       <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/monthly/:projectId" element={<Layout><MonthWiseForecast /></Layout>} />
         <Route path="/predicted-materials" element={<Layout><BOQViewer /></Layout>} />
-        <Route path="/carbon-tracking" element={<Layout><CarbonTracking /></Layout>} />
+        <Route path="/reports" element={<Layout><Report /></Layout>} />
+        <Route path="/carbon-tracking" element={<Layout><CarbonTracking /></Layout>} />  
+
+
+        <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
+         <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
       </Route>
     </Route>
   )

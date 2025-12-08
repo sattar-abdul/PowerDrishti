@@ -60,7 +60,7 @@ const materialTrackingSchema = Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'In Transit', 'Delivered', 'Delayed', 'Cancelled'],
+        enum: ['Pending', 'In Transit', 'Delivered', 'Delayed', 'Cancelled', 'Ordered'],
         default: 'Pending'
     },
     eta: {
