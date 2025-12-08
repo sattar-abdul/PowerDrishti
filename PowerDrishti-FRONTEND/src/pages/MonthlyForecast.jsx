@@ -69,8 +69,40 @@ const MonthWiseForecast = () => {
         if (projectId) {
             fetchMonthlyBOQ();
             fetchInventory();
+            fetchProcurementOrders();
         }
     }, [projectId]);
+
+    const fetchProcurementOrders = async () => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/procurement/orders/${projectId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const ordersData = await response.json();
+                // Create a map of material_id + month_number to order info
+                const ordersMap = {};
+                ordersData.forEach(order => {
+                    // Use combination of material_id and month_number as key
+                    const key = `${order.material_id}_month_${order.month_number}`;
+                    ordersMap[key] = {
+                        ordered: true,
+                        orderDate: new Date(order.order_date).toLocaleDateString(),
+                        trackingId: order.tracking_id,
+                        orderId: order._id,
+                        status: order.status,
+                        monthNumber: order.month_number
+                    };
+                });
+                setOrders(ordersMap);
+            }
+        } catch (error) {
+            console.error('Error fetching procurement orders:', error);
+            setOrders({});
+        }
+    };
 
     const fetchMonthlyBOQ = async () => {
         setIsLoading(true);
@@ -262,14 +294,38 @@ const MonthWiseForecast = () => {
         // Find the material details
         const monthData = forecastData.find(m => m.monthNumber === monthNumber);
         const material = monthData?.materials.find(m => m.id === materialId);
+        console.log("material", material);
 
         if (!material) {
             alert('Material not found');
             return;
         }
 
-        // Redirect to Material Tracking page with material and project info
-        navigate(`/material-tracking?projectId=${projectId}&materialId=${materialId}&materialName=${encodeURIComponent(material.name)}&quantity=${material.quantity}&unit=${material.unit}`);
+        // Calculate inventory-aware quantity
+        const orderInfo = getQuantityToOrder(materialId, material.quantity);
+
+        // Check if order is needed
+        if (orderInfo.toOrder <= 0) {
+            alert(`No order needed!\n\nRequired: ${orderInfo.predicted} ${material.unit}\nAvailable in inventory: ${orderInfo.available} ${material.unit}\n\nYou have sufficient inventory for this material.`);
+            return;
+        }
+
+        // Show order confirmation with inventory details
+        const confirmOrder = window.confirm(
+            `Order Details:\n\n` +
+            `Material: ${material.name}\n` +
+            `Required: ${orderInfo.predicted} ${material.unit}\n` +
+            `Available in inventory: ${orderInfo.available} ${material.unit}\n` +
+            `Quantity to order: ${orderInfo.toOrder} ${material.unit}\n\n` +
+            `Proceed with order?`
+        );
+
+        if (!confirmOrder) {
+            return;
+        }
+
+        // Redirect to Material Tracking page with ACTUAL quantity to order
+        navigate(`/material-tracking?projectId=${projectId}&materialId=${materialId}&materialName=${encodeURIComponent(material.name)}&quantity=${orderInfo.toOrder}&unit=${material.unit}&monthNumber=${monthNumber}`);
     };
 
     const handleOrderAllForMonth = async (monthNumber) => {
@@ -481,67 +537,92 @@ const MonthWiseForecast = () => {
                                                                     const priority = getMaterialPriority(material.id);
                                                                     const tooltip = getTooltipForMaterial(material.id);
 
-                                                                    if (priority === "High" && tooltip) {
-                                                                        return (
-                                                                            <TooltipProvider>
-                                                                                <Tooltip>
-                                                                                    <TooltipTrigger asChild>
-                                                                                        <div className="flex items-center gap-2 cursor-help">
-                                                                                            <span>{material.name}</span>
-                                                                                            <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                                                                        </div>
-                                                                                    </TooltipTrigger>
-                                                                                    <TooltipContent className="max-w-xs">
-                                                                                        <p className="text-sm">{tooltip}</p>
-                                                                                    </TooltipContent>
-                                                                                </Tooltip>
-                                                                            </TooltipProvider>
-                                                                        );
-                                                                    }
-                                                                    return material.name;
-                                                                })()}
-                                                            </TableCell>
-                                                            <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
-                                                            <TableCell>{(() => {
-                                                                const qtyInfo = getQuantityToOrder(material.id, material.quantity);
-                                                                if (!qtyInfo.hasInventory) {
-                                                                    return qtyInfo.predicted.toLocaleString();
+                                                                if (priority === "High" && tooltip) {
+                                                                    return (
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <div className="flex items-center gap-2 cursor-help">
+                                                                                        <span>{material.name}</span>
+                                                                                        <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                                                                    </div>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent className="max-w-xs">
+                                                                                    <p className="text-sm">{tooltip}</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    );
+                                                                }
+                                                                return material.name;
+                                                            })()}
+                                                        </TableCell>
+                                                        <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
+                                                        <TableCell>{(() => {
+                                                            const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                            if (!qtyInfo.hasInventory) {
+                                                                return qtyInfo.predicted.toLocaleString();
+                                                            }
+                                                            return (
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="line-through text-gray-400 text-sm">
+                                                                            {qtyInfo.predicted.toLocaleString()}
+                                                                        </span>
+                                                                        <span className="text-gray-500">→</span>
+                                                                        <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
+                                                                            {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                                        Available: {qtyInfo.available.toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}</TableCell>
+                                                        <TableCell>{material.unit}</TableCell>
+                                                        <TableCell>
+                                                            {(() => {
+                                                                // Use month-specific key
+                                                                const orderKey = `${material.id}_month_${monthData.monthNumber}`;
+                                                                const orderInfo = orders[orderKey];
+                                                                if (orderInfo?.ordered) {
+                                                                    return (
+                                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                                            <CheckCircle className="w-3 h-3 mr-1" /> Ordered
+                                                                            {orderInfo.orderDate && (
+                                                                                <span className="text-xs ml-2">({orderInfo.orderDate})</span>
+                                                                            )}
+                                                                        </Badge>
+                                                                    );
                                                                 }
                                                                 return (
-                                                                    <div className="flex flex-col">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="line-through text-gray-400 text-sm">
-                                                                                {qtyInfo.predicted.toLocaleString()}
-                                                                            </span>
-                                                                            <span className="text-gray-500">→</span>
-                                                                            <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
-                                                                                {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="text-xs text-gray-500 mt-0.5">
-                                                                            Available: {qtyInfo.available.toLocaleString()}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })()}</TableCell>
-                                                            <TableCell>{material.unit}</TableCell>
-                                                            <TableCell>
-                                                                {material.ordered ? (
-                                                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                                        <CheckCircle className="w-3 h-3 mr-1" /> Ordered
-                                                                        {material.orderDate && (
-                                                                            <span className="text-xs ml-2">({material.orderDate})</span>
-                                                                        )}
-                                                                    </Badge>
-                                                                ) : (
                                                                     <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                                                                         <AlertTriangle className="w-3 h-3 mr-1" /> Pending
                                                                     </Badge>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <div className="flex gap-2">
-                                                                    {!material.ordered ? (
+                                                                );
+                                                            })()}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex gap-2">
+                                                                {(() => {
+                                                                    // Use month-specific key
+                                                                    const orderKey = `${material.id}_month_${monthData.monthNumber}`;
+                                                                    const orderInfo = orders[orderKey];
+                                                                    if (orderInfo?.ordered && orderInfo?.trackingId) {
+                                                                        return (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleTrackMaterial(orderInfo.trackingId)}
+                                                                                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                                                            >
+                                                                                <Truck className="w-3 h-3 mr-1" />
+                                                                                Track Now
+                                                                            </Button>
+                                                                        );
+                                                                    }
+                                                                    return (
                                                                         <Button
                                                                             size="sm"
                                                                             onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
@@ -551,29 +632,19 @@ const MonthWiseForecast = () => {
                                                                             <ShoppingCart className="w-3 h-3 mr-1" />
                                                                             Order Now
                                                                         </Button>
-                                                                    ) : (
-                                                                        <Button
-                                                                            size="sm"
-                                                                            variant="outline"
-                                                                            onClick={() => handleTrackMaterial(material.trackingId)}
-                                                                            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                                                                        >
-                                                                            <Truck className="w-3 h-3 mr-1" />
-                                                                            Track Now
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </CardContent>
-                                    </CollapsibleContent>
-                                </Card>
-                            </Collapsible>
-                        ));
-                    })()}
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </CollapsibleContent>
+                            </Card>
+                        </Collapsible>
+                    ))}
                 </TabsContent>
 
                 <TabsContent value="phasewise" className="space-y-4">
