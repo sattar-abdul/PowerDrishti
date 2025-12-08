@@ -4,8 +4,8 @@ import './index.css'
 import { createBrowserRouter, RouterProvider, Route, createRoutesFromElements } from 'react-router-dom'
 import Layout from './components/layout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
-import InventoryAnalyzer from './pages/InventoryAnalyser.jsx'
-import MaterialTracking from './pages/MaterialTracking.jsx'
+ import InventoryAnalyzer from './pages/InventoryAnalyser.jsx'
+ import MaterialTracking from './pages/MaterialTracking.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -42,7 +42,8 @@ const router = createBrowserRouter(
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <RouterProvider router={router} />
+      <RouterProvider router={router} /> 
+  
     </AuthProvider>
   </StrictMode>,
 )
