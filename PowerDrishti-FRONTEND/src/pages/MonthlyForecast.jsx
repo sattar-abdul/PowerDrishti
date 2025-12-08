@@ -537,114 +537,115 @@ const MonthWiseForecast = () => {
                                                                     const priority = getMaterialPriority(material.id);
                                                                     const tooltip = getTooltipForMaterial(material.id);
 
-                                                                if (priority === "High" && tooltip) {
-                                                                    return (
-                                                                        <TooltipProvider>
-                                                                            <Tooltip>
-                                                                                <TooltipTrigger asChild>
-                                                                                    <div className="flex items-center gap-2 cursor-help">
-                                                                                        <span>{material.name}</span>
-                                                                                        <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                                                                    </div>
-                                                                                </TooltipTrigger>
-                                                                                <TooltipContent className="max-w-xs">
-                                                                                    <p className="text-sm">{tooltip}</p>
-                                                                                </TooltipContent>
-                                                                            </Tooltip>
-                                                                        </TooltipProvider>
-                                                                    );
-                                                                }
-                                                                return material.name;
-                                                            })()}
-                                                        </TableCell>
-                                                        <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
-                                                        <TableCell>{(() => {
-                                                            const qtyInfo = getQuantityToOrder(material.id, material.quantity);
-                                                            if (!qtyInfo.hasInventory) {
-                                                                return qtyInfo.predicted.toLocaleString();
-                                                            }
-                                                            return (
-                                                                <div className="flex flex-col">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="line-through text-gray-400 text-sm">
-                                                                            {qtyInfo.predicted.toLocaleString()}
-                                                                        </span>
-                                                                        <span className="text-gray-500">→</span>
-                                                                        <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
-                                                                            {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="text-xs text-gray-500 mt-0.5">
-                                                                        Available: {qtyInfo.available.toLocaleString()}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })()}</TableCell>
-                                                        <TableCell>{material.unit}</TableCell>
-                                                        <TableCell>
-                                                            {(() => {
-                                                                // Use month-specific key
-                                                                const orderKey = `${material.id}_month_${monthData.monthNumber}`;
-                                                                const orderInfo = orders[orderKey];
-                                                                if (orderInfo?.ordered) {
-                                                                    return (
-                                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                                            <CheckCircle className="w-3 h-3 mr-1" /> Ordered
-                                                                            {orderInfo.orderDate && (
-                                                                                <span className="text-xs ml-2">({orderInfo.orderDate})</span>
-                                                                            )}
-                                                                        </Badge>
-                                                                    );
+                                                                    if (priority === "High" && tooltip) {
+                                                                        return (
+                                                                            <TooltipProvider>
+                                                                                <Tooltip>
+                                                                                    <TooltipTrigger asChild>
+                                                                                        <div className="flex items-center gap-2 cursor-help">
+                                                                                            <span>{material.name}</span>
+                                                                                            <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                                                                        </div>
+                                                                                    </TooltipTrigger>
+                                                                                    <TooltipContent className="max-w-xs">
+                                                                                        <p className="text-sm">{tooltip}</p>
+                                                                                    </TooltipContent>
+                                                                                </Tooltip>
+                                                                            </TooltipProvider>
+                                                                        );
+                                                                    }
+                                                                    return material.name;
+                                                                })()}
+                                                            </TableCell>
+                                                            <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
+                                                            <TableCell>{(() => {
+                                                                const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                                if (!qtyInfo.hasInventory) {
+                                                                    return qtyInfo.predicted.toLocaleString();
                                                                 }
                                                                 return (
-                                                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                                                        <AlertTriangle className="w-3 h-3 mr-1" /> Pending
-                                                                    </Badge>
+                                                                    <div className="flex flex-col">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="line-through text-gray-400 text-sm">
+                                                                                {qtyInfo.predicted.toLocaleString()}
+                                                                            </span>
+                                                                            <span className="text-gray-500">→</span>
+                                                                            <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
+                                                                                {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-500 mt-0.5">
+                                                                            Available: {qtyInfo.available.toLocaleString()}
+                                                                        </div>
+                                                                    </div>
                                                                 );
-                                                            })()}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex gap-2">
+                                                            })()}</TableCell>
+                                                            <TableCell>{material.unit}</TableCell>
+                                                            <TableCell>
                                                                 {(() => {
                                                                     // Use month-specific key
                                                                     const orderKey = `${material.id}_month_${monthData.monthNumber}`;
                                                                     const orderInfo = orders[orderKey];
-                                                                    if (orderInfo?.ordered && orderInfo?.trackingId) {
+                                                                    if (orderInfo?.ordered) {
                                                                         return (
-                                                                            <Button
-                                                                                size="sm"
-                                                                                variant="outline"
-                                                                                onClick={() => handleTrackMaterial(orderInfo.trackingId)}
-                                                                                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                                                                            >
-                                                                                <Truck className="w-3 h-3 mr-1" />
-                                                                                Track Now
-                                                                            </Button>
+                                                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                                                <CheckCircle className="w-3 h-3 mr-1" /> Ordered
+                                                                                {orderInfo.orderDate && (
+                                                                                    <span className="text-xs ml-2">({orderInfo.orderDate})</span>
+                                                                                )}
+                                                                            </Badge>
                                                                         );
                                                                     }
                                                                     return (
-                                                                        <Button
-                                                                            size="sm"
-                                                                            onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                                            disabled={isOrdering}
-                                                                            className="bg-blue-600 hover:bg-blue-700"
-                                                                        >
-                                                                            <ShoppingCart className="w-3 h-3 mr-1" />
-                                                                            Order Now
-                                                                        </Button>
+                                                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                                                            <AlertTriangle className="w-3 h-3 mr-1" /> Pending
+                                                                        </Badge>
                                                                     );
                                                                 })()}
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </CollapsibleContent>
-                            </Card>
-                        </Collapsible>
-                    ))}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex gap-2">
+                                                                    {(() => {
+                                                                        // Use month-specific key
+                                                                        const orderKey = `${material.id}_month_${monthData.monthNumber}`;
+                                                                        const orderInfo = orders[orderKey];
+                                                                        if (orderInfo?.ordered && orderInfo?.trackingId) {
+                                                                            return (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    onClick={() => handleTrackMaterial(orderInfo.trackingId)}
+                                                                                    className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                                                                >
+                                                                                    <Truck className="w-3 h-3 mr-1" />
+                                                                                    Track Now
+                                                                                </Button>
+                                                                            );
+                                                                        }
+                                                                        return (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                                disabled={isOrdering}
+                                                                                className="bg-blue-600 hover:bg-blue-700"
+                                                                            >
+                                                                                <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                                Order Now
+                                                                            </Button>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </CardContent>
+                                    </CollapsibleContent>
+                                </Card>
+                            </Collapsible>
+                        ))
+                    })()}
                 </TabsContent>
 
                 <TabsContent value="phasewise" className="space-y-4">

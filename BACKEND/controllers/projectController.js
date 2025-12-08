@@ -3,6 +3,7 @@ import { Project } from '../models/Project.js';
 import { BOQ } from '../models/BOQ.js';
 import { MonthlyBOQ } from '../models/MonthlyBOQ.js';
 import * as mlService from '../services/mlService.js';
+import * as fileParserService from '../services/fileParserService.js';
 
 // @desc    Create new project
 // @route   POST /api/projects
@@ -258,9 +259,41 @@ const updateProjectLocation = asyncHandler(async (req, res) => {
     res.status(200).json(updatedProject);
 });
 
+// @desc    Parse project file (PDF, CSV, XLSX)
+// @route   POST /api/projects/parse-file
+// @access  Private
+const parseProjectFile = asyncHandler(async (req, res) => {
+    try {
+        if (!req.file) {
+            res.status(400);
+            throw new Error('Please upload a file');
+        }
+
+        // Parse the file using the file parser service
+        const result = await fileParserService.parseProjectFile(req.file);
+
+        if (!result.success) {
+            res.status(400);
+            throw new Error(result.error);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: result.data,
+            message: 'File parsed successfully'
+        });
+    } catch (error) {
+        console.error('File parsing error:', error);
+        res.status(500);
+        throw new Error(`Failed to parse file: ${error.message}`);
+    }
+});
+
 export {
     createProject,
     getProjects,
     updateProjectPhase,
     updateProjectLocation,
+    parseProjectFile,
 };
+

@@ -59,9 +59,10 @@ const ProjectForecast = () => {
     console.log(`token is : ${token}`); //just for test
 
 
-    const [selectedPdf, setSelectedPdf] = useState(null);
-    const [pdfUrl, setPdfUrl] = useState(null);
-    const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [isUploadingFile, setIsUploadingFile] = useState(false);
+    const [parsedData, setParsedData] = useState(null);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
 
     const [formData, setFormData] = useState({
         // 1. Project Information
@@ -90,34 +91,78 @@ const ProjectForecast = () => {
         taxes_duty: "",
     });
 
-    const handlePdfSelect = async (e) => {
+    const handleFileSelect = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.type !== 'application/pdf') {
-                alert("Please upload a PDF file");
+            const allowedTypes = [
+                'application/pdf',
+                'text/csv',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel'
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Please upload a PDF, CSV, or XLSX file");
                 return;
             }
-            setSelectedPdf(file);
 
-            setIsUploadingPdf(true);
-            setTimeout(() => {
-                setPdfUrl("https://dummyimage.com/600x400/cccccc/000000&text=PDF+Preview");
-                setIsUploadingPdf(false);
-            }, 500);
+            setSelectedFile(file);
         }
     };
 
-    const handleRemovePdf = () => {
-        setSelectedPdf(null);
-        setPdfUrl(null);
+    const handleRemoveFile = () => {
+        setSelectedFile(null);
+        setParsedData(null);
+        setShowPreviewModal(false);
     };
 
-    const handleSubmitPdf = async () => {
-        setIsUploadingPdf(true);
-        setTimeout(() => {
-            setPdfUrl("https://dummyimage.com/600x400/cccccc/000000&text=PDF+Preview");
-            setIsUploadingPdf(false);
-        }, 500);
+    const handleParseFile = async () => {
+        if (!selectedFile) {
+            alert('Please select a file first');
+            return;
+        }
+
+        setIsUploadingFile(true);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            const response = await fetch(`${LOCAL_URL}/api/projects/parse-file`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to parse file');
+            }
+
+            const result = await response.json();
+            setParsedData(result.data);
+            setShowPreviewModal(true);
+            setIsUploadingFile(false);
+        } catch (error) {
+            console.error('File parsing error:', error);
+            alert(`Error parsing file: ${error.message}`);
+            setIsUploadingFile(false);
+        }
+    };
+
+    const handleConfirmParsedData = () => {
+        if (parsedData) {
+            // Auto-fill form with parsed data
+            setFormData(prev => ({
+                ...prev,
+                ...parsedData
+            }));
+            setShowPreviewModal(false);
+            setInputMode('form'); // Switch to form view
+            alert('Form fields have been auto-filled! Please review and submit.');
+        }
     };
 
     const handleSubmitForm = async (e) => {
@@ -193,9 +238,9 @@ const ProjectForecast = () => {
                                 <Edit3 className="w-4 h-4" />
                                 Fill Form Manually
                             </TabsTrigger>
-                            <TabsTrigger value="pdf" className="flex items-center gap-2">
+                            <TabsTrigger value="file" className="flex items-center gap-2">
                                 <FileUp className="w-4 h-4" />
-                                Upload PDF Document
+                                Upload Project File
                             </TabsTrigger>
                         </TabsList>
 
@@ -451,32 +496,33 @@ const ProjectForecast = () => {
                             </form>
                         </TabsContent>
 
-                        <TabsContent value="pdf">
+                        <TabsContent value="file">
                             <div className="space-y-6">
                                 <Alert className="bg-blue-50 border-blue-200">
                                     <FileText className="h-4 w-4 text-blue-600" />
                                     <AlertDescription className="text-blue-800">
-                                        Upload a project DPR, technical specifications, or any document containing project details.
-                                        AI will automatically extract all information and generate the forecast.
+                                        Upload a project file (PDF, CSV, or XLSX) containing project details.
+                                        Our AI will automatically extract information and fill the form for you.
+                                        Supported formats: PDF, CSV, XLSX
                                     </AlertDescription>
                                 </Alert>
 
-                                {!selectedPdf ? (
+                                {!selectedFile ? (
                                     <div className="border-2 border-dashed border-slate-300 rounded-lg p-12 text-center hover:border-blue-400 transition-colors">
                                         <input
                                             type="file"
-                                            accept="application/pdf"
-                                            onChange={handlePdfSelect}
+                                            accept=".pdf,.csv,.xlsx,.xls"
+                                            onChange={handleFileSelect}
                                             className="hidden"
-                                            id="pdf-upload"
-                                            disabled={isUploadingPdf}
+                                            id="file-upload"
+                                            disabled={isUploadingFile}
                                         />
-                                        <label htmlFor="pdf-upload" className="cursor-pointer">
+                                        <label htmlFor="file-upload" className="cursor-pointer">
                                             <FileText className="w-16 h-16 mx-auto text-slate-400 mb-4" />
                                             <p className="text-lg text-slate-600 font-medium mb-2">
-                                                {isUploadingPdf ? "Uploading..." : "Click to upload project PDF"}
+                                                {isUploadingFile ? "Uploading..." : "Click to upload project file"}
                                             </p>
-                                            <p className="text-sm text-slate-500">PDF files only, up to 10MB</p>
+                                            <p className="text-sm text-slate-500">PDF, CSV, or XLSX files, up to 10MB</p>
                                         </label>
                                     </div>
                                 ) : (
@@ -484,16 +530,16 @@ const ProjectForecast = () => {
                                         <div className="flex items-center gap-4 p-6 bg-blue-50 border-2 border-blue-200 rounded-lg">
                                             <FileText className="w-12 h-12 text-blue-600 shrink-0" />
                                             <div className="flex-1">
-                                                <p className="font-semibold text-slate-900 text-lg">{selectedPdf.name}</p>
+                                                <p className="font-semibold text-slate-900 text-lg">{selectedFile.name}</p>
                                                 <p className="text-sm text-slate-500 mt-1">
-                                                    {(selectedPdf.size / 1024 / 1024).toFixed(2)} MB • Uploaded successfully
+                                                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready to parse
                                                 </p>
                                             </div>
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={handleRemovePdf}
+                                                onClick={handleRemoveFile}
                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
                                                 <X className="w-5 h-5" />
@@ -501,20 +547,20 @@ const ProjectForecast = () => {
                                         </div>
 
                                         <Button
-                                            onClick={handleSubmitPdf}
-                                            disabled={isProcessing}
+                                            onClick={handleParseFile}
+                                            disabled={isUploadingFile}
                                             className="w-full bg-blue-600 hover:bg-blue-700"
                                             size="lg"
                                         >
-                                            {isProcessing ? (
+                                            {isUploadingFile ? (
                                                 <>
                                                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                                    Analyzing PDF & Generating Forecast...
+                                                    Parsing File with AI...
                                                 </>
                                             ) : (
                                                 <>
                                                     <TrendingUp className="w-5 h-5 mr-2" />
-                                                    Generate Forecast from PDF
+                                                    Parse & Auto-Fill Form
                                                 </>
                                             )}
                                         </Button>
@@ -640,6 +686,75 @@ const ProjectForecast = () => {
                         </CardContent>
                     </Card>
                 </>
+            )}
+
+            {/* Preview Modal for Parsed Data */}
+            {showPreviewModal && parsedData && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <Card className="bg-white max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <CardHeader className="border-b border-slate-200 sticky top-0 bg-white z-10">
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-blue-600" />
+                                    Review Extracted Data
+                                </CardTitle>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowPreviewModal(false)}
+                                    className="text-slate-600 hover:text-slate-900"
+                                >
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6">
+                            <Alert className="bg-green-50 border-green-200">
+                                <AlertCircle className="h-4 w-4 text-green-600" />
+                                <AlertDescription className="text-green-800">
+                                    AI has successfully extracted the following information. Please review and confirm to auto-fill the form.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {Object.entries(parsedData).map(([key, value]) => {
+                                    if (!value || (Array.isArray(value) && value.length === 0)) return null;
+
+                                    const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                                    const label = key.split('_').map(word =>
+                                        word.charAt(0).toUpperCase() + word.slice(1)
+                                    ).join(' ');
+
+                                    return (
+                                        <div key={key} className="space-y-1">
+                                            <Label className="text-slate-600 text-sm">{label}</Label>
+                                            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+                                                <p className="text-slate-900 font-medium">{displayValue || 'Not found'}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex gap-3 pt-4 border-t">
+                                <Button
+                                    onClick={() => setShowPreviewModal(false)}
+                                    variant="outline"
+                                    className="flex-1"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleConfirmParsedData}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                >
+                                    <TrendingUp className="w-4 h-4 mr-2" />
+                                    Confirm & Auto-Fill Form
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             )}
         </div>
     );
