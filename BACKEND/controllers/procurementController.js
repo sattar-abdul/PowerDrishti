@@ -197,6 +197,28 @@ const getAllOrders = asyncHandler(async (req, res) => {
     res.status(200).json(orders);
 });
 
+// @desc    Get high-priority materials across all user projects
+// @route   GET /api/procurement/high-priority
+// @access  Private
+const getHighPriorityMaterials = asyncHandler(async (req, res) => {
+    // Get all user's projects
+    const projects = await Project.find({ user: req.user.id });
+    const projectIds = projects.map(p => p._id);
+
+    // Find all high-priority orders from user's projects
+    const highPriorityOrders = await ProcurementOrder.find({
+        project: { $in: projectIds },
+        priority: 'High',
+        status: 'Ordered' 
+        
+
+    })
+        .sort({ order_date: -1 })
+        .populate('project', 'project_name district state_region')
+
+    res.status(200).json(highPriorityOrders);
+});
+
 // @desc    Update order status
 // @route   PATCH /api/procurement/orders/:orderId/status
 // @access  Private
@@ -253,5 +275,6 @@ export {
     createOrder,
     getOrdersByProject,
     getAllOrders,
-    updateOrderStatus
+    updateOrderStatus,
+    getHighPriorityMaterials
 };
