@@ -7,5 +7,5 @@ InventoryRouter.route('/').get(protect, getAllInventories);
 InventoryRouter.route('/:projectId')
     .get(protect, getInventory)
     .put(protect, updateInventory);
-    
+
 export { InventoryRouter };

@@ -207,7 +207,7 @@ const getHighPriorityMaterials = asyncHandler(async (req, res) => {
 
     // Find all high-priority orders from user's projects
     const highPriorityOrders = await ProcurementOrder.find({
-        project: { $in: projectIds },
+        // project: { $in: projectIds },
         priority: 'High',
         status: 'Ordered' 
         
@@ -215,8 +215,10 @@ const getHighPriorityMaterials = asyncHandler(async (req, res) => {
     })
         .sort({ order_date: -1 })
         .populate('project', 'project_name district state_region')
-
+    console.log(highPriorityOrders);
+    console.log(await ProcurementOrder.find({project: { $in: projectIds }}));
     res.status(200).json(highPriorityOrders);
+    
 });
 
 // @desc    Update order status
