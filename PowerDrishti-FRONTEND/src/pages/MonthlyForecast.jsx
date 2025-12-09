@@ -553,7 +553,7 @@ const MonthWiseForecast = () => {
                                         : "hover:bg-blue-50"
                                         }`}
                                     onClick={() => handlePhaseChange(phase)}
-                                    disabled={isUpdatingPhase}
+                                    // disabled={isUpdatingPhase}
                                 >
                                     <div className="text-center w-full">
                                         <div className="font-bold mb-1">Phase {index + 1}</div>
@@ -564,7 +564,7 @@ const MonthWiseForecast = () => {
                                 </Button>
                             ))}
                         </div>
-                        {isUpdatingPhase && (
+                        {!isUpdatingPhase && (
                             <p className="text-sm text-blue-600 text-center">Updating phase...</p>
                         )}
                     </div>
