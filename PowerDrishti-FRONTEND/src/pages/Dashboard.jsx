@@ -101,7 +101,7 @@ export default function Dashboard() {
 
     const handleProjectClick = (projectId) => {
         // Navigate to monthly prediction page
-        navigate(`/monthly-forecast/${projectId}`);
+        navigate(`/monthly/${projectId}`);
     };
 
     const handleOrderMaterial = async (material) => {
@@ -143,7 +143,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
                 <StatsCard
                     title="Active Projects"
                     value={activeProjects}
@@ -160,14 +160,14 @@ export default function Dashboard() {
                     trend="8% on schedule"
                     trendUp={true}
                 />
-                <StatsCard
+                {/* <StatsCard
                     title="Carbon Emissions"
                     value={`${(totalCarbon / 1000).toFixed(1)}T`}
                     subtitle="Total CO2 this month"
                     icon={Leaf}
                     trend="15% reduction"
                     trendUp={false}
-                />
+                /> */}
                 <StatsCard
                     title="High Priority Items"
                     value={highPriorityMaterials.length}
@@ -180,45 +180,6 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DemandTrendChart />
-                <CarbonBreakdownChart />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-white border-slate-200">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-semibold text-slate-900">Recent Projects</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {projects.length === 0 ? (
-                            <p className="text-slate-500 text-center py-8">No projects yet. Create your first forecast!</p>
-                        ) : (
-                            <div className="space-y-3">
-                                {projects.slice(0, 5).map((project) => (
-                                    <div
-                                        key={project._id}
-                                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
-                                        onClick={() => handleProjectClick(project._id)}
-                                    >
-                                        <div>
-                                            <p className="font-medium text-slate-900">{project.project_name}</p>
-                                            <p className="text-sm text-slate-500">
-                                                {project.district}, {project.state_region} • ₹{(project.total_budget / 10000000).toFixed(1)}Cr
-                                            </p>
-                                        </div>
-                                        <Badge variant="outline" className={
-                                            project.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-300' :
-                                                project.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-300' :
-                                                    'bg-yellow-50 text-yellow-700 border-yellow-300'
-                                        }>
-                                            {project.current_phase?.split(' - ')[0] || 'Phase 1'}
-                                        </Badge>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
                 <Card className="bg-white border-slate-200">
                     <CardHeader>
                         <CardTitle className="text-lg font-semibold text-slate-900">System Alerts</CardTitle>
@@ -250,45 +211,120 @@ export default function Dashboard() {
                                     <p className="text-xs text-blue-700 mt-1">All shipments tracking normally</p>
                                 </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </div >
+                    </CardContent >
+                </Card >
+                {/* <CarbonBreakdownChart /> */}
             </div>
 
-            {/* High Priority Materials Section */}
-            {highPriorityMaterials.length > 0 && (
-                <div ref={materialsRef}>
-                    <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                                        <AlertTriangle className="w-5 h-5 text-orange-600" />
-                                        High Priority Materials
-                                    </CardTitle>
-                                    <p className="text-sm text-slate-600 mt-1">
-                                        Materials requiring immediate ordering across all projects
-                                    </p>
-                                </div>
-                                <Badge className="bg-red-100 text-red-700 border-red-300">
-                                    {highPriorityMaterials.length} Items
-                                </Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {highPriorityMaterials.map((material) => (
-                                    <HighPriorityMaterialCard
-                                        key={material._id}
-                                        material={material}
-                                        onOrder={handleOrderMaterial}
-                                    />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-white border-slate-200">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-semibold text-slate-900">Recent Projects</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {projects.length === 0 ? (
+                            <p className="text-slate-500 text-center py-8">No projects yet. Create your first forecast!</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {projects.slice(25,28).map((project) => (
+                                    <div
+                                        key={project._id}
+                                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+                                        onClick={() => handleProjectClick(project._id)}
+                                    >
+                                        <div>
+                                            <p className="font-medium text-slate-900">{project.project_name}</p>
+                                            <p className="text-sm text-slate-500">
+                                                {project.district}, {project.state_region} • ₹{(project.total_budget / 10000000).toFixed(1)}Cr
+                                            </p>
+                                        </div>
+                                        <Badge variant="outline" className={
+                                            project.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-300' :
+                                                project.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-300' :
+                                                    'bg-yellow-50 text-yellow-700 border-yellow-300'
+                                        }>
+                                            {project.current_phase?.split(' - ')[0] || 'Phase 1'}
+                                        </Badge>
+                                    </div>
                                 ))}
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-        </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* <Card className="bg-white border-slate-200">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-semibold text-slate-900">System Alerts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {highPriorityMaterials.length > 0 && (
+                                <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                                    <div>
+                                        <p className="font-medium text-red-900 text-sm">High priority materials pending</p>
+                                        <p className="text-xs text-red-700 mt-1">
+                                            {highPriorityMaterials.length} material{highPriorityMaterials.length !== 1 ? 's' : ''} need immediate ordering
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                                <div>
+                                    <p className="font-medium text-green-900 text-sm">Forecast accuracy improved</p>
+                                    <p className="text-xs text-green-700 mt-1">ML model updated with latest data</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <Package className="w-5 h-5 text-blue-600 mt-0.5" />
+                                <div>
+                                    <p className="font-medium text-blue-900 text-sm">Material delivery on schedule</p>
+                                    <p className="text-xs text-blue-700 mt-1">All shipments tracking normally</p>
+                                </div>
+                            </div>
+                        </div >
+                    </CardContent >
+                </Card > */}
+            </div >
+
+            {/* High Priority Materials Section */}
+            {
+                highPriorityMaterials.length > 0 && (
+                    <div ref={materialsRef}>
+                        <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-orange-600" />
+                                            High Priority Materials
+                                        </CardTitle>
+                                        <p className="text-sm text-slate-600 mt-1">
+                                            Materials requiring immediate ordering across all projects
+                                        </p>
+                                    </div>
+                                    <Badge className="bg-red-100 text-red-700 border-red-300">
+                                        {highPriorityMaterials.length} Items
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {highPriorityMaterials.map((material) => (
+                                        <HighPriorityMaterialCard
+                                            key={material._id}
+                                            material={material}
+                                            onOrder={handleOrderMaterial}
+                                        />
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
+        </div >
     );
 }
