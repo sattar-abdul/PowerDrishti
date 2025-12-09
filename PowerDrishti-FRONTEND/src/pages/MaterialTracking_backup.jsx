@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Navigation, PlayCircle, StopCircle, Truck, Package, Calendar, Store, MapPinned, CheckCircle } from "lucide-react";
+import { MapPin, Navigation, PlayCircle, StopCircle, Truck, Package, Calendar, Store, MapPinned } from "lucide-react";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from "@/context/AuthContext";
@@ -81,6 +81,45 @@ function RouteFitter({ source, destination, route }) {
     return null;
 }
 
+// Helper function to generate curved route like Google Maps
+function generateCurvedRoute(start, end, numPoints = 50) {
+    const points = [];
+    const [startLat, startLng] = start;
+    const [endLat, endLng] = end;
+
+    // Calculate the midpoint
+    const midLat = (startLat + endLat) / 2;
+    const midLng = (startLng + endLng) / 2;
+
+    // Calculate the perpendicular offset for the curve
+    const dx = endLng - startLng;
+    const dy = endLat - startLat;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Create a curve with offset proportional to distance
+    const curvature = distance * 0.2;
+    const offsetLat = -dx * curvature;
+    const offsetLng = dy * curvature;
+
+    // Control point for the bezier curve
+    const controlLat = midLat + offsetLat;
+    const controlLng = midLng + offsetLng;
+
+    // Generate points along the quadratic bezier curve
+    for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints;
+        const t1 = 1 - t;
+
+        // Quadratic bezier formula
+        const lat = t1 * t1 * startLat + 2 * t1 * t * controlLat + t * t * endLat;
+        const lng = t1 * t1 * startLng + 2 * t1 * t * controlLng + t * t * endLng;
+
+        points.push([lat, lng]);
+    }
+
+    return points;
+}
+
 export default function MaterialTracking() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -93,7 +132,6 @@ export default function MaterialTracking() {
     const [isLoading, setIsLoading] = useState(true);
     const [isTracking, setIsTracking] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [hasStartedTracking, setHasStartedTracking] = useState(false);
 
     // New states for supplier and location
     const [suppliers, setSuppliers] = useState([]);
@@ -155,30 +193,6 @@ export default function MaterialTracking() {
         initializePage();
     }, []);
 
-    useEffect(() => {
-        // Calculate progress based on distance covered when tracking data changes
-        if (trackingData && trackingData.distance_km && trackingData.distance_covered_km) {
-            const calculatedProgress = (trackingData.distance_covered_km / trackingData.distance_km) * 100;
-            const roundedProgress = Math.min(Math.round(calculatedProgress), 100);
-            setProgress(roundedProgress);
-
-            // Check if tracking has been started before (status is 'In Transit' or progress > 0)
-            if (trackingData.status === 'In Transit' || trackingData.distance_covered_km > 0) {
-                setHasStartedTracking(true);
-            }
-
-            // If delivered, stop tracking animation if running
-            if (trackingData.status === 'Delivered') {
-                setIsTracking(false);
-                if (requestRef.current) {
-                    cancelAnimationFrame(requestRef.current);
-                }
-                setProgress(100);
-                setHasStartedTracking(true);
-            }
-        }
-    }, [trackingData]);
-
     const fetchProjectLocation = async (projId) => {
         try {
             const response = await fetch(`${LOCAL_URL}/api/projects`, {
@@ -234,6 +248,7 @@ export default function MaterialTracking() {
                 : `${LOCAL_URL}/api/suppliers/material/${materialId}`;
 
             console.log(url);
+
 
             const suppliersResponse = await fetch(url, {
                 headers: {
@@ -322,7 +337,6 @@ export default function MaterialTracking() {
             setMode('tracking');
             setTrackingData(data.tracking);
             setSelectedOrder(data.order._id);
-            setHasStartedTracking(false); // Reset tracking state for new order
             setMaterialInfo(null); // Clear material info to show tracking UI
         } catch (error) {
             console.error('Error placing order:', error);
@@ -356,24 +370,12 @@ export default function MaterialTracking() {
                 }
             });
             if (response.ok) {
-                const data = await response.json();
-                setTrackingData(data);
-
-                // Check if tracking has been started
-                if (data.status === 'In Transit' || data.distance_covered_km > 0) {
-                    setHasStartedTracking(true);
-                }
-
-                // Calculate progress based on distance covered
-                if (data.distance_km && data.distance_covered_km) {
-                    const calculatedProgress = (data.distance_covered_km / data.distance_km) * 100;
-                    setProgress(Math.min(Math.round(calculatedProgress), 100));
-                }
+                const data = await response.json(); setTrackingData(data);
 
                 // Show inventory update notification when delivered
                 if (data.inventoryUpdate) {
                     const { item_name, new_quantity, unit } = data.inventoryUpdate;
-                    alert(`✅ Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
                 }
                 setSelectedOrder(data.order?._id);
             }
@@ -384,9 +386,6 @@ export default function MaterialTracking() {
 
     const handleOrderSelect = async (orderId) => {
         setSelectedOrder(orderId);
-        setIsTracking(false); // Reset tracking state when selecting new order
-        setHasStartedTracking(false); // Reset hasStartedTracking for new order
-
         try {
             const response = await fetch(`${LOCAL_URL}/api/tracking/order/${orderId}`, {
                 headers: {
@@ -394,24 +393,12 @@ export default function MaterialTracking() {
                 }
             });
             if (response.ok) {
-                const data = await response.json();
-                setTrackingData(data);
-
-                // Check if tracking has been started
-                if (data.status === 'In Transit' || data.distance_covered_km > 0) {
-                    setHasStartedTracking(true);
-                }
-
-                // Calculate progress based on distance covered
-                if (data.distance_km && data.distance_covered_km) {
-                    const calculatedProgress = (data.distance_covered_km / data.distance_km) * 100;
-                    setProgress(Math.min(Math.round(calculatedProgress), 100));
-                }
+                const data = await response.json(); setTrackingData(data);
 
                 // Show inventory update notification when delivered
                 if (data.inventoryUpdate) {
                     const { item_name, new_quantity, unit } = data.inventoryUpdate;
-                    alert(`✅ Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
                 }
             }
         } catch (error) {
@@ -425,12 +412,6 @@ export default function MaterialTracking() {
             return;
         }
 
-        // Don't start tracking if already delivered
-        if (trackingData.status === 'Delivered') {
-            alert("This order has already been delivered");
-            return;
-        }
-
         try {
             const response = await fetch(`${LOCAL_URL}/api/tracking/${trackingData.tracking_id}/start`, {
                 method: 'POST',
@@ -440,29 +421,18 @@ export default function MaterialTracking() {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                setTrackingData(data);
-                setHasStartedTracking(true); // Mark that tracking has started
+                const data = await response.json(); setTrackingData(data);
 
                 // Show inventory update notification when delivered
                 if (data.inventoryUpdate) {
                     const { item_name, new_quantity, unit } = data.inventoryUpdate;
-                    alert(`✅ Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
                 }
-
-                // Calculate initial progress based on distance covered
-                if (data.distance_km && data.distance_covered_km) {
-                    const calculatedProgress = (data.distance_covered_km / data.distance_km) * 100;
-                    setProgress(Math.min(Math.round(calculatedProgress), 100));
-                }
-
                 setIsTracking(true);
+                setProgress(0);
 
-                // Only start animation if not delivered
-                if (data.status !== 'Delivered') {
-                    startTimeRef.current = Date.now();
-                    requestRef.current = requestAnimationFrame(animate);
-                }
+                startTimeRef.current = Date.now();
+                requestRef.current = requestAnimationFrame(animate);
             }
         } catch (error) {
             console.error("Failed to start tracking", error);
@@ -475,6 +445,7 @@ export default function MaterialTracking() {
         if (requestRef.current) {
             cancelAnimationFrame(requestRef.current);
         }
+        setProgress(0);
     };
 
     const animate = () => {
@@ -482,13 +453,7 @@ export default function MaterialTracking() {
         const elapsed = now - startTimeRef.current;
         const newProgress = Math.min(elapsed / duration, 1);
 
-        // Calculate new distance covered based on progress
-        const totalDistance = trackingData.distance_km;
-        const distanceCovered = totalDistance * newProgress;
-
-        // Update progress based on distance
-        const roundedProgress = Math.round(newProgress * 100);
-        setProgress(roundedProgress);
+        setProgress(newProgress * 100);
 
         if (newProgress < 1) {
             const source = trackingData.source_location;
@@ -496,13 +461,12 @@ export default function MaterialTracking() {
             const lat = source.lat + (dest.lat - source.lat) * newProgress;
             const lng = source.lng + (dest.lng - source.lng) * newProgress;
 
-            updateTrackingLocation(lat, lng, distanceCovered, newProgress);
+            updateTrackingLocation(lat, lng, newProgress);
             requestRef.current = requestAnimationFrame(animate);
         } else {
             updateTrackingLocation(
                 trackingData.destination_location.lat,
                 trackingData.destination_location.lng,
-                totalDistance,
                 1,
                 'Delivered'
             );
@@ -510,7 +474,7 @@ export default function MaterialTracking() {
         }
     };
 
-    const updateTrackingLocation = async (lat, lng, distanceCovered, progressValue, status = null) => {
+    const updateTrackingLocation = async (lat, lng, progress, status = null) => {
         try {
             const response = await fetch(`${LOCAL_URL}/api/tracking/${trackingData.tracking_id}/location`, {
                 method: 'PATCH',
@@ -521,10 +485,9 @@ export default function MaterialTracking() {
                 body: JSON.stringify({
                     lat,
                     lng,
-                    distance_covered_km: parseFloat(distanceCovered.toFixed(2)),
-                    status: status || (progressValue >= 1 ? 'Delivered' : progressValue >= 0.33 ? 'In Transit' : 'Ordered'),
+                    status: status || (progress >= 1 ? 'Delivered' : progress >= 0.33 ? 'In Transit' : 'Ordered'),
                     speed_kmh: 60,
-                    notes: `Progress: ${Math.round(progressValue * 100)}%`
+                    notes: `Progress: ${(progress * 100).toFixed(0)}%`
                 })
             });
 
@@ -535,7 +498,7 @@ export default function MaterialTracking() {
                 // Show inventory update notification when delivered
                 if (data.inventoryUpdate) {
                     const { item_name, new_quantity, unit } = data.inventoryUpdate;
-                    alert(`✅ Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
+                    alert(`? Delivery Complete!\n\nInventory Updated:\n${item_name}: ${new_quantity} ${unit}\n\nCheck Inventory Management page for details.`);
                 }
             }
         } catch (error) {
@@ -562,49 +525,6 @@ export default function MaterialTracking() {
             default:
                 return 'bg-yellow-100 text-yellow-800';
         }
-    };
-
-    // Determine button state and content
-    const getButtonState = () => {
-        if (!trackingData) {
-            return {
-                disabled: true,
-                text: "Select an Order",
-                variant: "outline",
-                icon: null
-            };
-        }
-
-        if (trackingData.status === 'Delivered') {
-            return {
-                disabled: true,
-                text: "Delivered",
-                variant: "default",
-                className: "w-full bg-green-600 hover:bg-green-700 cursor-default",
-                icon: <CheckCircle className="w-4 h-4 mr-2" />
-            };
-        }
-
-        // Once tracking has started (button clicked), it should be disabled
-        if (hasStartedTracking) {
-            return {
-                disabled: true,
-                text: progress > 0 ? `Tracking In Progress (${progress}%)` : "Tracking Started",
-                variant: "default",
-                className: "w-full bg-blue-600 hover:bg-blue-700 cursor-default",
-                icon: <Truck className="w-4 h-4 mr-2" />
-            };
-        }
-
-        // Default state - start tracking button (only appears before first click)
-        return {
-            disabled: false,
-            text: "Start Tracking",
-            variant: "default",
-            className: "w-full bg-blue-600 hover:bg-blue-700",
-            icon: <PlayCircle className="w-4 h-4 mr-2" />,
-            onClick: handleStartTracking
-        };
     };
 
     if (isLoading) {
@@ -840,7 +760,7 @@ export default function MaterialTracking() {
         );
     }
 
-    // Tracking Mode UI
+    // Tracking Mode UI (original)
     return (
         <div className="bg-[#f5f8fd] p-6 md:p-8 space-y-6 min-h-screen">
             <div>
@@ -849,20 +769,16 @@ export default function MaterialTracking() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* LEFT CARD */}
-                <Card className="bg-white border-slate-200 h-fit col-span-1 lg:col-span-3">
+                <Card className="bg-white border-slate-200 h-fit">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Navigation className="w-5 h-5 text-blue-600" />
                             Tracking Details
                         </CardTitle>
                     </CardHeader>
-
                     <CardContent className="space-y-6">
-
-                        {/* ORDER SELECT */}
-                        <div className="space-y-2 max-w-sm">
-                            <Label>Select Order</Label>
+                        <div className="space-y-2">
+                            <Label htmlFor="order">Select Order</Label>
                             <Select value={selectedOrder} onValueChange={handleOrderSelect} disabled={isTracking}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select an Order" />
@@ -881,27 +797,20 @@ export default function MaterialTracking() {
                             </Select>
                         </div>
 
-                        {/* TWO COLUMN LAYOUT */}
                         {trackingData && (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                                {/* LEFT SIDE — DETAILS */}
-                                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <>
+                                <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-600">Material:</span>
                                         <span className="font-medium text-slate-900">{trackingData.order?.material_name}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-600">Quantity:</span>
-                                        <span className="font-medium text-slate-900">
-                                            {trackingData.order?.quantity} {trackingData.order?.unit}
-                                        </span>
+                                        <span className="font-medium text-slate-900">{trackingData.order?.quantity} {trackingData.order?.unit}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-600">Tracking ID:</span>
-                                        <span className="font-mono text-xs text-slate-900">
-                                            {trackingData.tracking_id}
-                                        </span>
+                                        <span className="font-mono text-xs text-slate-900">{trackingData.tracking_id}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-600">Status:</span>
@@ -913,128 +822,137 @@ export default function MaterialTracking() {
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-600">Covered:</span>
-                                        <span className="font-medium text-slate-900">
-                                            {trackingData.distance_covered_km} km
-                                        </span>
+                                        <span className="font-medium text-slate-900">{trackingData.distance_covered_km} km</span>
                                     </div>
-
                                     {trackingData.eta && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-slate-600">ETA:</span>
-                                            <span className="font-medium text-slate-900">
-                                                {new Date(trackingData.eta).toLocaleDateString()}
-                                            </span>
+                                            <span className="font-medium text-slate-900">{new Date(trackingData.eta).toLocaleDateString()}</span>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* RIGHT SIDE — TRACKING JOURNEY */}
-                                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100 space-y-4">
-                                    <h3 className="text-sm font-semibold text-slate-800">Tracking Journey</h3>
+                                {!isTracking ? (
+                                    <Button
+                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                        onClick={handleStartTracking}
+                                        disabled={trackingData.status === 'Delivered'}
+                                    >
+                                        <PlayCircle className="w-4 h-4 mr-2" />
+                                        Start Tracking
+                                    </Button>
+                                ) : (
+                                    <Button className="w-full bg-red-600 hover:bg-red-700" onClick={handleStopTracking}>
+                                        <StopCircle className="w-4 h-4 mr-2" />
+                                        Stop Tracking
+                                    </Button>
+                                )}
 
-                                    <div className="relative">
-                                        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-300"></div>
-
-                                        <div
-                                            className="absolute left-4 top-0 w-0.5 bg-blue-600 transition-all duration-300"
-                                            style={{ height: `${progress}%` }}
-                                        ></div>
-
-                                        <div className="space-y-6 relative">
-                                            {/* Step 1 */}
-                                            <div className="flex items-start gap-3">
-                                                <div
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${progress >= 0
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-slate-300 text-slate-600"
-                                                        }`}
-                                                >
-                                                    <Package className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-slate-900">Order Placed</p>
-                                                    <p className="text-xs text-slate-500">Material ordered from supplier</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Step 2 */}
-                                            <div className="flex items-start gap-3">
-                                                <div
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${progress >= 33
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-slate-300 text-slate-600"
-                                                        }`}
-                                                >
-                                                    <Truck className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-slate-900">In Transit</p>
-                                                    <p className="text-xs text-slate-500">On the way to destination</p>
-
-                                                    {isTracking && progress >= 33 && progress < 100 && (
-                                                        <p className="text-xs text-blue-600 font-medium mt-1">
-                                                            {progress}% complete
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Step 3 */}
-                                            <div className="flex items-start gap-3">
-                                                <div
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${progress >= 100 ||
-                                                        trackingData.status === "Delivered"
-                                                        ? "bg-green-600 text-white"
-                                                        : "bg-slate-300 text-slate-600"
-                                                        }`}
-                                                >
-                                                    <MapPin className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-slate-900">Delivered</p>
-                                                    <p className="text-xs text-slate-500">Reached project site</p>
-                                                </div>
-                                            </div>
+                                {isTracking && (
+                                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-3">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-600">Progress:</span>
+                                            <span className="font-medium text-slate-900">{Math.round(progress)}%</span>
+                                        </div>
+                                        <div className="w-full bg-blue-200 rounded-full h-2">
+                                            <div
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-600">Speed:</span>
+                                            <span className="font-medium text-slate-900">{trackingData.speed_kmh || 60} km/h</span>
                                         </div>
                                     </div>
-{/* 
-                                    {(hasStartedTracking || isTracking) && (
-                                        <div className="p-3 bg-white rounded-lg border border-blue-200 space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-slate-600">Progress:</span>
-                                                <span className="font-medium text-slate-900">{progress}%</span>
-                                            </div>
-                                            <div className="w-full bg-blue-200 h-2 rounded-full">
-                                                <div
-                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                    style={{ width: `${progress}%` }}
-                                                ></div>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-slate-600">Distance Covered:</span>
-                                                <span className="font-medium text-slate-900">
-                                                    {trackingData.distance_covered_km?.toFixed(2) || 0} km
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )} */}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ACTION BUTTON */}
-                        {trackingData && (
-                            <Button
-                                className={getButtonState().className || "w-full"}
-                                onClick={getButtonState().onClick}
-                                disabled={getButtonState().disabled}
-                                variant={getButtonState().variant}
-                            >
-                                {getButtonState().icon}
-                                {getButtonState().text}
-                            </Button>
+                                )}
+                            </>
                         )}
                     </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-2 bg-white border-slate-200 overflow-hidden flex flex-col">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <MapPin className="w-5 h-5 text-green-600" />
+                                Live Map View
+                            </CardTitle>
+                            {isTracking && (
+                                <div className="flex items-center gap-2 text-sm text-slate-500 animate-pulse">
+                                    <span className="relative flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                    </span>
+                                    Live Updates
+                                </div>
+                            )}
+                        </div>
+                    </CardHeader>
+                    {/* <div className="flex-1 min-h-[500px] relative">
+                        <MapContainer
+                            center={[20.5937, 78.9629]}
+                            zoom={5}
+                            style={{ height: '100%', width: '100%', position: 'absolute' }}
+                        >
+                            <TileLayer
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            />
+                            <MapResizer />
+
+                            {trackingData && (
+                                <>
+                                    <Marker position={[trackingData.source_location.lat, trackingData.source_location.lng]} icon={pinIcon}>
+                                        <Popup>
+                                            <div className="text-sm">
+                                                <p className="font-bold">Source</p>
+                                                <p>{trackingData.source_location.address}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+
+                                    <Marker position={[trackingData.destination_location.lat, trackingData.destination_location.lng]} icon={pinIcon}>
+                                        <Popup>
+                                            <div className="text-sm">
+                                                <p className="font-bold">Destination</p>
+                                                <p>{trackingData.destination_location.address}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+
+                                    {trackingData.current_location && (
+                                        <Marker position={[trackingData.current_location.lat, trackingData.current_location.lng]} icon={truckIcon}>
+                                            <Popup>
+                                                <div className="text-sm">
+                                                    <p className="font-bold">Tracking ID: {trackingData.tracking_id}</p>
+                                                    <p>Status: {trackingData.status}</p>
+                                                    <p>Speed: {trackingData.speed_kmh || 60} km/h</p>
+                                                    <p>Material: {trackingData.order?.material_name}</p>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
+                                    )}
+
+                                    <Polyline
+                                        positions={[
+                                            [trackingData.source_location.lat, trackingData.source_location.lng],
+                                            [trackingData.destination_location.lat, trackingData.destination_location.lng]
+                                        ]}
+                                        color="#3b82f6"
+                                        weight={4}
+                                        opacity={0.8}
+                                    />
+
+                                    <RouteFitter
+                                        source={[trackingData.source_location.lat, trackingData.source_location.lng]}
+                                        destination={[trackingData.destination_location.lat, trackingData.destination_location.lng]}
+                                        route={null}
+                                    />
+                                </>
+                            )}
+                        </MapContainer>
+                    </div> */}
                 </Card>
             </div>
         </div>

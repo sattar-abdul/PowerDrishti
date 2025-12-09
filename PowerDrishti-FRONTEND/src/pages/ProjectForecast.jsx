@@ -571,7 +571,7 @@ const ProjectForecast = () => {
                     </Tabs>
                 </CardContent>
             </Card>
-
+{/* 
             {forecastResults && (
                 <Card className="bg-white border-slate-200">
                     <CardHeader className="border-b border-slate-200">
@@ -625,7 +625,7 @@ const ProjectForecast = () => {
                         </div>
                     </CardContent>
                 </Card>
-            )}
+            )} */}
 
 
             {/* // Update the ProjectForecast component - Add this after the materials table */}

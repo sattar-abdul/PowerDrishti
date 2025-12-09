@@ -10,7 +10,7 @@ export default function HighPriorityMaterialCard({ material, onOrder }) {
 
     const handleCardClick = () => {
         // Navigate to monthly prediction page for this project
-        navigate(`/monthly-forecast/${material.project._id}`);
+        navigate(`/monthly/${material.project._id}`);
     };
 
     const handleOrderClick = (e) => {
