@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck, Info } from "lucide-react";
+import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck, Info, Pencil, Trash2, Save, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LOCAL_URL } from "@/api/api";
 import { getTooltipForMaterial } from "@/constants/materialTooltips";
@@ -28,6 +28,66 @@ const MonthWiseForecast = () => {
     const [orders, setOrders] = useState({}); // Store orders by materialId
     const [isOrdering, setIsOrdering] = useState(false);
     const [expandedMonths, setExpandedMonths] = useState({ 1: true }); // Month 1 expanded by default
+
+    // Edit State
+    const [editingItem, setEditingItem] = useState(null); // { monthNumber, materialId, quantity }
+
+    const handleUpdateItem = async (monthNumber, materialId, newQuantity) => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/boq/monthly/${projectId}/item`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    month: monthNumber,
+                    materialName: materialId,
+                    quantity: newQuantity,
+                    action: 'update'
+                })
+            });
+
+            if (response.ok) {
+                // Refresh data
+                fetchMonthlyBOQ();
+                setEditingItem(null);
+            } else {
+                alert('Failed to update item');
+            }
+        } catch (error) {
+            console.error('Error updating item:', error);
+            alert('Error updating item');
+        }
+    };
+
+    const handleDeleteItem = async (monthNumber, materialId) => {
+        if (!window.confirm('Are you sure you want to remove this item from the forecast?')) return;
+
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/boq/monthly/${projectId}/item`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    month: monthNumber,
+                    materialName: materialId,
+                    action: 'delete'
+                })
+            });
+
+            if (response.ok) {
+                fetchMonthlyBOQ();
+            } else {
+                alert('Failed to delete item');
+            }
+        } catch (error) {
+            console.error('Error deleting item:', error);
+            alert('Error deleting item');
+        }
+    };
 
     // Phase-to-material priority mapping
     const PHASE_MATERIALS = {
@@ -395,7 +455,7 @@ const MonthWiseForecast = () => {
                                                 <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform ${expandedMonths[monthData.monthNumber] ? 'transform rotate-0' : 'transform -rotate-90'}`} />
                                                 <CardTitle className="flex items-center gap-2">
                                                     <Calendar className="w-5 h-5 text-blue-600" />
-                                                    {monthData.month}
+                                                    {PHASES[monthData.monthNumber - 1] || `Phase ${monthData.monthNumber}`}
                                                 </CardTitle>
                                             </div>
                                         </CollapsibleTrigger>
@@ -455,28 +515,39 @@ const MonthWiseForecast = () => {
                                                             })()}
                                                         </TableCell>
                                                         <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
-                                                        <TableCell>{(() => {
-                                                            const qtyInfo = getQuantityToOrder(material.id, material.quantity);
-                                                            if (!qtyInfo.hasInventory) {
-                                                                return qtyInfo.predicted.toLocaleString();
-                                                            }
-                                                            return (
-                                                                <div className="flex flex-col">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="line-through text-gray-400 text-sm">
-                                                                            {qtyInfo.predicted.toLocaleString()}
-                                                                        </span>
-                                                                        <span className="text-gray-500">→</span>
-                                                                        <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
-                                                                            {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="text-xs text-gray-500 mt-0.5">
-                                                                        Available: {qtyInfo.available.toLocaleString()}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })()}</TableCell>
+                                                        <TableCell>
+                                                            {editingItem?.monthNumber === monthData.monthNumber && editingItem?.materialId === material.id ? (
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-20 border rounded px-2 py-1"
+                                                                    value={editingItem.quantity}
+                                                                    onChange={(e) => setEditingItem({ ...editingItem, quantity: e.target.value })}
+                                                                />
+                                                            ) : (
+                                                                (() => {
+                                                                    const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                                    if (!qtyInfo.hasInventory) {
+                                                                        return qtyInfo.predicted.toLocaleString();
+                                                                    }
+                                                                    return (
+                                                                        <div className="flex flex-col">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="line-through text-gray-400 text-sm">
+                                                                                    {qtyInfo.predicted.toLocaleString()}
+                                                                                </span>
+                                                                                <span className="text-gray-500">→</span>
+                                                                                <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
+                                                                                    {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500 mt-0.5">
+                                                                                Available: {qtyInfo.available.toLocaleString()}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })()
+                                                            )}
+                                                        </TableCell>
                                                         <TableCell>{material.unit}</TableCell>
                                                         <TableCell>
                                                             {(() => {
@@ -502,35 +573,64 @@ const MonthWiseForecast = () => {
                                                         </TableCell>
                                                         <TableCell>
                                                             <div className="flex gap-2">
-                                                                {(() => {
-                                                                    // Use month-specific key
-                                                                    const orderKey = `${material.id}_month_${monthData.monthNumber}`;
-                                                                    const orderInfo = orders[orderKey];
-                                                                    if (orderInfo?.ordered && orderInfo?.trackingId) {
-                                                                        return (
-                                                                            <Button
-                                                                                size="sm"
-                                                                                variant="outline"
-                                                                                onClick={() => handleTrackMaterial(orderInfo.trackingId)}
-                                                                                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                                                                            >
-                                                                                <Truck className="w-3 h-3 mr-1" />
-                                                                                Track Now
-                                                                            </Button>
-                                                                        );
-                                                                    }
-                                                                    return (
+                                                                {editingItem?.monthNumber === monthData.monthNumber && editingItem?.materialId === material.id ? (
+                                                                    <>
+                                                                        <Button size="sm" variant="ghost" onClick={() => handleUpdateItem(monthData.monthNumber, material.id, editingItem.quantity)}>
+                                                                            <Save className="w-4 h-4 text-green-600" />
+                                                                        </Button>
+                                                                        <Button size="sm" variant="ghost" onClick={() => setEditingItem(null)}>
+                                                                            <X className="w-4 h-4 text-red-600" />
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        {(() => {
+                                                                            // Use month-specific key
+                                                                            const orderKey = `${material.id}_month_${monthData.monthNumber}`;
+                                                                            const orderInfo = orders[orderKey];
+                                                                            if (orderInfo?.ordered && orderInfo?.trackingId) {
+                                                                                return (
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="outline"
+                                                                                        onClick={() => handleTrackMaterial(orderInfo.trackingId)}
+                                                                                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                                                                    >
+                                                                                        <Truck className="w-3 h-3 mr-1" />
+                                                                                        Track Now
+                                                                                    </Button>
+                                                                                );
+                                                                            }
+                                                                            return (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                                    disabled={isOrdering}
+                                                                                    className="bg-blue-600 hover:bg-blue-700"
+                                                                                >
+                                                                                    <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                                    Order Now
+                                                                                </Button>
+                                                                            );
+                                                                        })()}
                                                                         <Button
                                                                             size="sm"
-                                                                            onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                                            disabled={isOrdering}
-                                                                            className="bg-blue-600 hover:bg-blue-700"
+                                                                            variant="ghost"
+                                                                            onClick={() => setEditingItem({ monthNumber: monthData.monthNumber, materialId: material.id, quantity: material.quantity })}
+                                                                            className="text-slate-500 hover:text-blue-600"
                                                                         >
-                                                                            <ShoppingCart className="w-3 h-3 mr-1" />
-                                                                            Order Now
+                                                                            <Pencil className="w-4 h-4" />
                                                                         </Button>
-                                                                    );
-                                                                })()}
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            onClick={() => handleDeleteItem(monthData.monthNumber, material.id)}
+                                                                            className="text-slate-500 hover:text-red-600"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>

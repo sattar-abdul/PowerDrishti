@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import { Inventory } from '../models/Inventory.js';
 import { Project } from '../models/Project.js';
+import { BOQ } from '../models/BOQ.js';
 
 // Default 33 inventory items for POWERGRID projects
 const DEFAULT_ITEMS = [
@@ -106,6 +107,8 @@ const updateInventory = asyncHandler(async (req, res) => {
         inventory.last_updated = Date.now();
         await inventory.save();
     }
+
+    // --------------------------
 
     res.status(200).json(inventory);
 });

@@ -265,8 +265,16 @@ const InventoryManagement = () => {
 
             {/* Message Alert */}
             {message && (
-                <Alert className={message.type === 'success' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}>
-                    <AlertDescription className={message.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+                <Alert className={
+                    message.type === 'success' ? 'bg-green-50 border-green-300' :
+                        message.type === 'warning' ? 'bg-yellow-50 border-yellow-300' :
+                            'bg-red-50 border-red-300'
+                }>
+                    <AlertDescription className={
+                        message.type === 'success' ? 'text-green-800' :
+                            message.type === 'warning' ? 'text-yellow-800' :
+                                'text-red-800'
+                    }>
                         {message.text}
                     </AlertDescription>
                 </Alert>
