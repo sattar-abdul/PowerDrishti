@@ -4,8 +4,8 @@ import './index.css'
 import { createBrowserRouter, RouterProvider, Route, createRoutesFromElements } from 'react-router-dom'
 import Layout from './components/layout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
- import InventoryAnalyzer from './pages/InventoryAnalyser.jsx'
- import MaterialTracking from './pages/MaterialTracking.jsx'
+import InventoryAnalyzer from './pages/InventoryAnalyser.jsx'
+import MaterialTracking from './pages/MaterialTracking.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -16,6 +16,7 @@ import InventoryManagement from './pages/InventoryManagement.jsx'
 import MonthWiseForecast from './pages/MonthlyForecast'
 import BOQViewer from './pages/PredictedMaterialsViewer.jsx'
 import CarbonTracking from './pages/CarbonTracking'
+import TimeSeriesPrediction from './pages/TimeSeriesPrediction.jsx'
 
 
 const router = createBrowserRouter(
@@ -26,17 +27,17 @@ const router = createBrowserRouter(
 
       <Route element={<PrivateRoute />}>
         <Route path="/" element={<Layout><Dashboard /></Layout>} />
-       <Route path="/inventory" element={<Layout><InventoryAnalyzer /></Layout>} /> 
-        
-       <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
+        <Route path="/inventory" element={<Layout><InventoryAnalyzer /></Layout>} />
+
+        <Route path="/material-tracking" element={<Layout><MaterialTracking /></Layout>} />
         <Route path="/monthly/:projectId" element={<Layout><MonthWiseForecast /></Layout>} />
         <Route path="/predicted-materials" element={<Layout><BOQViewer /></Layout>} />
         <Route path="/reports" element={<Layout><Report /></Layout>} />
-        <Route path="/carbon-tracking" element={<Layout><CarbonTracking /></Layout>} />  
-
+        <Route path="/carbon-tracking" element={<Layout><CarbonTracking /></Layout>} />
+        <Route path="/time-series-prediction" element={<Layout><TimeSeriesPrediction /></Layout>} />
 
         <Route path="/forecast" element={<Layout><ProjectForecast /></Layout>} />
-         <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
+        <Route path="/inventory-management" element={<Layout><InventoryManagement /></Layout>} />
       </Route>
     </Route>
   )
@@ -45,8 +46,8 @@ const router = createBrowserRouter(
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <RouterProvider router={router} /> 
-  
+      <RouterProvider router={router} />
+
     </AuthProvider>
   </StrictMode>,
 )

@@ -12,7 +12,8 @@ import {
     X,
     LogOut,
     Package,
-    ListChecks
+    ListChecks,
+    TrendingUp
 } from "lucide-react";
 import {
     Sidebar,
@@ -46,6 +47,11 @@ const navigationItems = [
         title: "Predicted Materials",
         url: "/predicted-materials",
         icon: ListChecks,
+    },
+    {
+        title: "Time Series Prediction",
+        url: "/time-series-prediction",
+        icon: TrendingUp,
     },
     {
         title: "Inventory Management",

@@ -17,6 +17,7 @@ const InventoryManagement = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState(null);
+    const [consumptionMonth, setConsumptionMonth] = useState(1);
 
     // Fetch user's projects on mount
     useEffect(() => {
@@ -115,7 +116,7 @@ const InventoryManagement = () => {
         console.log('📊 Current inventory items count:', inventory?.items?.length);
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const csv = event.target.result;
                 console.log('📄 CSV content loaded, length:', csv.length);
@@ -126,6 +127,7 @@ const InventoryManagement = () => {
 
                 const updatedItems = [...inventory.items];
                 let consumptionCount = 0;
+                const consumptionData = {}; // Track consumption for each material
 
                 // Skip header row, start from line 1
                 for (let i = 1; i < lines.length && i <= 33; i++) {
@@ -144,6 +146,11 @@ const InventoryManagement = () => {
                     if (itemName && consumptionQty !== undefined) {
                         const consumption = parseFloat(consumptionQty) || 0;
                         console.log(`   💧 Consumption value:`, consumption);
+
+                        // Track consumption data for saving to consumption tracking
+                        if (consumption > 0) {
+                            consumptionData[itemName] = consumption;
+                        }
 
                         // Find matching item by name or update by index
                         const itemIndex = updatedItems.findIndex(item =>
@@ -198,10 +205,20 @@ const InventoryManagement = () => {
                     unit: item.unit
                 })));
 
+                // Save consumption data to tracking system
+                console.log('\n📊 Consumption data extracted from CSV:');
+                console.log('   Number of materials:', Object.keys(consumptionData).length);
+                console.log('   Materials:', consumptionData);
+                console.log('   Month:', consumptionMonth);
+
+                const saved = await saveConsumptionData(consumptionData);
+
                 setInventory({ ...inventory, items: updatedItems });
                 setMessage({
                     type: 'success',
-                    text: `Consumption data processed! ${consumptionCount} items updated. Click 'Save Inventory' to persist changes.`
+                    text: saved
+                        ? `Consumption data processed and saved! ${consumptionCount} items updated for Month ${consumptionMonth}. Click 'Save Inventory' to persist inventory changes.`
+                        : `Consumption data processed! ${consumptionCount} items updated. Click 'Save Inventory' to persist changes. (Note: Consumption tracking save failed)`
                 });
                 setTimeout(() => setMessage(null), 5000);
             } catch (error) {
@@ -211,6 +228,70 @@ const InventoryManagement = () => {
             }
         };
         reader.readAsText(file);
+    };
+
+    const saveConsumptionData = async (consumptionData) => {
+        try {
+            // First, fetch existing consumption records to calculate cumulative
+            const getResponse = await fetch(`${LOCAL_URL}/api/forecast/consumption/${selectedProject}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            let cumulativeData = { ...consumptionData };
+
+            if (getResponse.ok) {
+                const existingRecords = await getResponse.json();
+                console.log('📚 Existing consumption records:', existingRecords);
+
+                // Calculate cumulative consumption
+                // Sum all consumption from months 1 to current month
+                if (existingRecords && existingRecords.length > 0) {
+                    const currentMonthNum = parseInt(consumptionMonth);
+
+                    // Filter records for months before current month
+                    const previousMonths = existingRecords.filter(record => record.month < currentMonthNum);
+
+                    // Sum up previous consumption
+                    previousMonths.forEach(record => {
+                        Object.entries(record.materials).forEach(([materialName, quantity]) => {
+                            if (cumulativeData[materialName] !== undefined) {
+                                cumulativeData[materialName] = (cumulativeData[materialName] || 0) + quantity;
+                            } else {
+                                cumulativeData[materialName] = quantity;
+                            }
+                        });
+                    });
+
+                    console.log('📊 Cumulative consumption calculated:', cumulativeData);
+                }
+            }
+
+            // Save cumulative consumption
+            const response = await fetch(`${LOCAL_URL}/api/forecast/consumption/${selectedProject}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    month: parseInt(consumptionMonth),
+                    materials: cumulativeData
+                })
+            });
+
+            if (response.ok) {
+                console.log('✅ Cumulative consumption data saved to tracking system');
+                return true;
+            } else {
+                console.error('❌ Failed to save consumption data');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error saving consumption data:', error);
+            return false;
+        }
     };
 
     const downloadTemplate = () => {
@@ -281,39 +362,68 @@ const InventoryManagement = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1">
-                                <Label htmlFor="csv-upload" className="cursor-pointer">
-                                    <div className="flex items-center gap-3 p-4 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-100 transition-all">
-                                        <Upload className="w-5 h-5 text-blue-600" />
-                                        <div>
-                                            <p className="font-medium text-blue-900">Upload Consumption CSV</p>
-                                            <p className="text-sm text-blue-700">Consumption will be deducted from current inventory</p>
-                                        </div>
-                                    </div>
-                                    <input
-                                        id="csv-upload"
-                                        type="file"
-                                        accept=".csv"
-                                        onChange={handleCsvUpload}
-                                        className="hidden"
-                                    />
+                        <div className="space-y-4">
+                            {/* Month Input */}
+                            <div className="flex items-center gap-4 p-4 bg-white rounded-lg border border-blue-200">
+                                <Label htmlFor="consumption-month" className="font-semibold text-blue-900 whitespace-nowrap">
+                                    Consumption Month:
                                 </Label>
+                                <Input
+                                    id="consumption-month"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    value={consumptionMonth}
+                                    onChange={(e) => setConsumptionMonth(e.target.value)}
+                                    className="w-32 border-blue-300 focus:border-blue-500"
+                                />
+                                <span className="text-sm text-blue-700">
+                                    Specify which month this consumption data is for
+                                </span>
                             </div>
-                            <div className="flex items-center">
-                                <Button
-                                    onClick={downloadTemplate}
-                                    variant="outline"
-                                    className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-100"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    Download Current Data
-                                </Button>
+
+                            {/* CSV Upload */}
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1">
+                                    <Label htmlFor="csv-upload" className="cursor-pointer">
+                                        <div className="flex items-center gap-3 p-4 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-100 transition-all">
+                                            <Upload className="w-5 h-5 text-blue-600" />
+                                            <div>
+                                                <p className="font-medium text-blue-900">Upload Consumption CSV</p>
+                                                <p className="text-sm text-blue-700">Consumption will be deducted from current inventory</p>
+                                            </div>
+                                        </div>
+                                        <input
+                                            id="csv-upload"
+                                            type="file"
+                                            accept=".csv"
+                                            onChange={handleCsvUpload}
+                                            className="hidden"
+                                        />
+                                    </Label>
+                                </div>
+                                <div className="flex items-center">
+                                    <Button
+                                        onClick={downloadTemplate}
+                                        variant="outline"
+                                        className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Download Current Data
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                         <Alert className="mt-4 bg-white border-blue-300">
                             <AlertDescription className="text-blue-800 text-sm">
-                                <strong>CSV Format:</strong> Item Name, Consumption Quantity, Unit (e.g., "ACSR_Moose_tons, 10, tons"). The consumption values will be subtracted from your current inventory.
+                                <strong>CSV Format:</strong> Item Name, Consumption Quantity, Unit (e.g., "ACSR_Moose_tons, 10, tons").
+                                <br />
+                                <strong>Note:</strong> The consumption values will be:
+                                <ul className="list-disc list-inside mt-1 ml-2">
+                                    <li>Subtracted from your current inventory</li>
+                                    <li>Added to previous months' consumption to calculate <strong>cumulative consumption till Month {consumptionMonth}</strong></li>
+                                    <li>Saved to the consumption tracking system for use in Time Series Prediction</li>
+                                </ul>
                             </AlertDescription>
                         </Alert>
                     </CardContent>
