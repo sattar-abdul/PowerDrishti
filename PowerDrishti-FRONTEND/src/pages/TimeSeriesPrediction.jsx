@@ -27,10 +27,17 @@ const TimeSeriesPrediction = () => {
     }, []);
 
     // Fetch monthly BOQ when project is selected
+    // Fetch monthly BOQ when project is selected
     useEffect(() => {
         if (selectedProject) {
-            fetchMonthlyBOQ();
-            fetchSavedConsumption();
+            const loadData = async () => {
+                await fetchMonthlyBOQ();
+                const savedFound = await fetchSavedConsumption();
+                if (!savedFound) {
+                    fetchInventoryData();
+                }
+            };
+            loadData();
         }
     }, [selectedProject]);
 
@@ -146,15 +153,50 @@ const TimeSeriesPrediction = () => {
                     if (latestRecord.month) {
                         setCurrentMonth(latestRecord.month);
                     }
+                    return true; // Data found
                 } else {
                     console.log('⚠️ No saved consumption records found');
+                    return false; // No data found
                 }
             } else {
                 console.log('❌ Failed to fetch consumption records, status:', response.status);
+                return false;
             }
         } catch (error) {
             console.error('Error fetching saved consumption:', error);
-            // Don't show error to user - it's okay if no saved data exists
+            return false;
+        }
+    };
+
+    const fetchInventoryData = async () => {
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/inventory/${selectedProject}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const inventoryData = await response.json();
+                console.log('📦 Inventory Data:', inventoryData);
+
+                if (inventoryData && inventoryData.items) {
+                    const inventoryMaterials = {};
+                    inventoryData.items.forEach(item => {
+                        inventoryMaterials[item.item_name] = item.quantity;
+                    });
+
+                    setActualConsumption(prev => ({
+                        ...prev,
+                        ...inventoryMaterials
+                    }));
+                    console.log('✅ Auto-filled from Inventory');
+                }
+            } else {
+                console.error('Failed to fetch inventory data');
+            }
+        } catch (error) {
+            console.error('Error fetching inventory:', error);
         }
     };
 
@@ -323,9 +365,19 @@ const TimeSeriesPrediction = () => {
                     </div>
 
                     {/* Actual Consumption Input - Temporarily Disabled */}
-                    {/* {selectedProject && monthlyBOQ && (
+                    {selectedProject && monthlyBOQ && (
                         <div className="space-y-3">
-                            <Label className="text-base font-semibold">Actual Cumulative Consumption (Till Month {currentMonth})</Label>
+                            <div className="flex justify-between items-center">
+                                <Label className="text-base font-semibold">Actual Cumulative Consumption (Till Month {currentMonth})</Label>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={fetchInventoryData}
+                                    className="text-xs h-8"
+                                >
+                                    Fetch from Inventory
+                                </Button>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-white rounded-lg border">
                                 {Object.keys(actualConsumption).map((materialName) => (
                                     <div key={materialName} className="space-y-1">
@@ -350,7 +402,7 @@ const TimeSeriesPrediction = () => {
                                 ))}
                             </div>
                         </div>
-                    )} */}
+                    )}
 
                     {error && (
                         <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
@@ -416,7 +468,7 @@ const TimeSeriesPrediction = () => {
                                         <TableHead className="text-right">Planned (Original)</TableHead>
                                         <TableHead className="text-right">Forecast (Adjusted)</TableHead>
                                         <TableHead className="text-right">Actual Cumulative</TableHead>
-                                        <TableHead className="text-right">Remaining BOQ</TableHead>
+                                        {/* <TableHead className="text-right">Remaining BOQ</TableHead> */}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -451,9 +503,9 @@ const TimeSeriesPrediction = () => {
                                             <TableCell className="text-right">
                                                 {item.Actual_Cumulative.toLocaleString()}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            {/* <TableCell className="text-right">
                                                 {item.Remaining_BOQ.toLocaleString()}
-                                            </TableCell>
+                                            </TableCell> */}
                                         </TableRow>
                                     ))}
                                 </TableBody>
