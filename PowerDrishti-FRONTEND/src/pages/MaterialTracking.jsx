@@ -889,7 +889,7 @@ export default function MaterialTracking() {
                             )}
                         </div>
                     </CardHeader>
-                    <div className="flex-1 min-h-[500px] relative">
+                    {/* <div className="flex-1 min-h-[500px] relative">
                         <MapContainer
                             center={[20.5937, 78.9629]}
                             zoom={5}
@@ -952,7 +952,7 @@ export default function MaterialTracking() {
                                 </>
                             )}
                         </MapContainer>
-                    </div>
+                    </div> */}
                 </Card>
             </div>
         </div>
