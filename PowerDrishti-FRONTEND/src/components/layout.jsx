@@ -63,21 +63,21 @@ const navigationItems = [
         url: "/material-tracking",
         icon: MapPin,
     },
-    {
-        title: "Carbon Tracking",
-        url: "/carbon-tracking",
-        icon: Leaf,
-    },
-    {
-        title: "Inventory Analyzer",
-        url: "/inventory",
-        icon: Warehouse,
-    },
-    {
-        title: "Reports",
-        url: "/reports",
-        icon: FileText,
-    },
+    // {
+    //     title: "Carbon Tracking",
+    //     url: "/carbon-tracking",
+    //     icon: Leaf,
+    // },
+    // {
+    //     title: "Inventory Analyzer",
+    //     url: "/inventory",
+    //     icon: Warehouse,
+    // },
+    // {
+    //     title: "Reports",
+    //     url: "/reports",
+    //     icon: FileText,
+    // },
 ];
 
 function SidebarContentWrapper() {
@@ -145,13 +145,13 @@ function SidebarContentWrapper() {
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <div className="px-3 py-2 space-y-3">
-                                <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                                {/* <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Leaf className="w-4 h-4 text-green-600" />
                                         <span className="text-xs font-semibold text-green-900">Sustainability</span>
                                     </div>
                                     <p className="text-xs text-green-700">AI-powered carbon tracking</p>
-                                </div>
+                                </div> */}
                                 <div className="p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Zap className="w-4 h-4 text-blue-600" />

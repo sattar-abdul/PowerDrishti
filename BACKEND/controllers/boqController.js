@@ -97,9 +97,109 @@ const deleteBOQ = asyncHandler(async (req, res) => {
     res.status(200).json({ id: req.params.id });
 });
 
+// @desc    Update material quantity in monthly BOQ
+// @route   PATCH /api/boq/monthly/:projectId/material
+// @access  Private
+const updateMonthlyMaterial = asyncHandler(async (req, res) => {
+    const { monthNumber, materialId, quantity } = req.body;
+
+    if (!monthNumber || !materialId || quantity === undefined) {
+        res.status(400);
+        throw new Error('Month number, material ID, and quantity are required');
+    }
+
+    const monthlyBOQ = await MonthlyBOQ.findOne({ project: req.params.projectId });
+
+    if (!monthlyBOQ) {
+        res.status(404);
+        throw new Error('Monthly BOQ not found for this project');
+    }
+
+    // Verify the project belongs to the user
+    const project = await Project.findById(req.params.projectId);
+    if (!project) {
+        res.status(404);
+        throw new Error('Project not found');
+    }
+
+    if (project.user.toString() !== req.user.id) {
+        res.status(401);
+        throw new Error('User not authorized');
+    }
+
+    // Find the month and update the material
+    const monthData = monthlyBOQ.monthly_breakdown.find(m => m.month === parseInt(monthNumber));
+
+    if (!monthData) {
+        res.status(404);
+        throw new Error('Month not found in BOQ');
+    }
+
+    // Update the material quantity
+    monthData.materials.set(materialId, parseFloat(quantity));
+
+    await monthlyBOQ.save();
+
+    res.status(200).json({
+        message: 'Material updated successfully',
+        monthlyBOQ
+    });
+});
+
+// @desc    Delete material from monthly BOQ
+// @route   DELETE /api/boq/monthly/:projectId/material
+// @access  Private
+const deleteMonthlyMaterial = asyncHandler(async (req, res) => {
+    const { monthNumber, materialId } = req.body;
+
+    if (!monthNumber || !materialId) {
+        res.status(400);
+        throw new Error('Month number and material ID are required');
+    }
+
+    const monthlyBOQ = await MonthlyBOQ.findOne({ project: req.params.projectId });
+
+    if (!monthlyBOQ) {
+        res.status(404);
+        throw new Error('Monthly BOQ not found for this project');
+    }
+
+    // Verify the project belongs to the user
+    const project = await Project.findById(req.params.projectId);
+    if (!project) {
+        res.status(404);
+        throw new Error('Project not found');
+    }
+
+    if (project.user.toString() !== req.user.id) {
+        res.status(401);
+        throw new Error('User not authorized');
+    }
+
+    // Find the month and delete the material
+    const monthData = monthlyBOQ.monthly_breakdown.find(m => m.month === parseInt(monthNumber));
+
+    if (!monthData) {
+        res.status(404);
+        throw new Error('Month not found in BOQ');
+    }
+
+    // Delete the material
+    monthData.materials.delete(materialId);
+
+    await monthlyBOQ.save();
+
+    res.status(200).json({
+        message: 'Material deleted successfully',
+        monthlyBOQ
+    });
+});
+
 export {
     getBOQByProject,
     getMonthlyBOQByProject,
     getAllBOQs,
-    deleteBOQ
+    deleteBOQ,
+    updateMonthlyMaterial,
+    deleteMonthlyMaterial
 };

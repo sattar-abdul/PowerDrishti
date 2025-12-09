@@ -344,7 +344,7 @@ const ProjectForecast = () => {
                                                 <SelectContent>
                                                     <SelectItem value="Transmission Line">Transmission Line</SelectItem>
                                                     <SelectItem value="Substation">Substation</SelectItem>
-                                                    <SelectItem value="Line+Substation">Both</SelectItem>
+                                                    {/* <SelectItem value="Line+Substation">Both</SelectItem> */}
                                                 </SelectContent>
                                             </Select>
                                         </div>

@@ -3,12 +3,13 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck, Info, ChevronDown } from "lucide-react";
+import { Calendar, CheckCircle, Clock, AlertTriangle, ShoppingCart, Truck, Info, ChevronDown, Edit, Trash2, Check, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LOCAL_URL } from "@/api/api";
 import { getTooltipForMaterial } from "@/constants/materialTooltips";
@@ -28,6 +29,7 @@ const MonthWiseForecast = () => {
     const [orders, setOrders] = useState({}); // Store orders by materialId
     const [isOrdering, setIsOrdering] = useState(false);
     const [expandedMonths, setExpandedMonths] = useState({ 1: true }); // Month 1 expanded by default
+    const [editingItem, setEditingItem] = useState(null);
 
     // Phase-to-material priority mapping
     const PHASE_MATERIALS = {
@@ -401,8 +403,117 @@ const MonthWiseForecast = () => {
         } catch (error) {
             console.error('Error updating phase:', error);
             alert('Error updating project phase');
-        } finally {
-            setIsUpdatingPhase(false);
+            console.error("Error updating material:", error);
+            alert("An error occurred while updating the material.");
+        }
+    };
+
+    const handleStartEdit = (monthNumber, materialId, currentQuantity) => {
+        setEditingItem({
+            monthNumber,
+            materialId,
+            value: currentQuantity
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingItem(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingItem) return;
+
+        const { monthNumber, materialId, value } = editingItem;
+        const parsedQuantity = parseFloat(value);
+
+        if (isNaN(parsedQuantity) || parsedQuantity < 0) {
+            alert("Please enter a valid positive number.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/boq/monthly/${projectId}/material`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    monthNumber,
+                    materialId,
+                    quantity: parsedQuantity
+                })
+            });
+
+            if (response.ok) {
+                // Update local state
+                setForecastData(prevData => {
+                    return prevData.map(month => {
+                        if (month.monthNumber === monthNumber) {
+                            return {
+                                ...month,
+                                materials: month.materials.map(mat => {
+                                    if (mat.id === materialId) {
+                                        return { ...mat, quantity: parsedQuantity };
+                                    }
+                                    return mat;
+                                })
+                            };
+                        }
+                        return month;
+                    });
+                });
+                setEditingItem(null);
+                alert("Material updated successfully!");
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to update material: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error("Error updating material:", error);
+            alert("An error occurred while updating the material.");
+        }
+    };
+
+    const handleDeleteMaterial = async (monthNumber, materialId) => {
+        if (!window.confirm("Are you sure you want to delete this material from the forecast?")) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${LOCAL_URL}/api/boq/monthly/${projectId}/material`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    monthNumber,
+                    materialId
+                })
+            });
+
+            if (response.ok) {
+                // Update local state
+                setForecastData(prevData => {
+                    return prevData.map(month => {
+                        if (month.monthNumber === monthNumber) {
+                            return {
+                                ...month,
+                                materials: month.materials.filter(mat => mat.id !== materialId)
+                            };
+                        }
+                        return month;
+                    });
+                });
+                alert("Material deleted successfully!");
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to delete material: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error("Error deleting material:", error);
+            alert("An error occurred while deleting the material.");
         }
     };
 
@@ -558,28 +669,40 @@ const MonthWiseForecast = () => {
                                                                 })()}
                                                             </TableCell>
                                                             <TableCell>{getPriorityBadge(getMaterialPriority(material.id))}</TableCell>
-                                                            <TableCell>{(() => {
-                                                                const qtyInfo = getQuantityToOrder(material.id, material.quantity);
-                                                                if (!qtyInfo.hasInventory) {
-                                                                    return qtyInfo.predicted.toLocaleString();
-                                                                }
-                                                                return (
-                                                                    <div className="flex flex-col">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="line-through text-gray-400 text-sm">
-                                                                                {qtyInfo.predicted.toLocaleString()}
-                                                                            </span>
-                                                                            <span className="text-gray-500">→</span>
-                                                                            <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
-                                                                                {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
-                                                                            </span>
+                                                            <TableCell>
+                                                                {(() => {
+                                                                    if (editingItem?.monthNumber === monthData.monthNumber && editingItem?.materialId === material.id) {
+                                                                        return (
+                                                                            <Input
+                                                                                type="number"
+                                                                                value={editingItem.value}
+                                                                                onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                                                                                className="w-32 h-8"
+                                                                            />
+                                                                        );
+                                                                    }
+
+                                                                    const qtyInfo = getQuantityToOrder(material.id, material.quantity);
+                                                                    if (!qtyInfo.hasInventory) {
+                                                                        return qtyInfo.predicted.toLocaleString();
+                                                                    }
+                                                                    return (
+                                                                        <div className="flex flex-col">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="line-through text-gray-400 text-sm">
+                                                                                    {qtyInfo.predicted.toLocaleString()}
+                                                                                </span>
+                                                                                <span className="text-gray-500">→</span>
+                                                                                <span className={qtyInfo.toOrder === 0 ? "text-green-600 font-semibold" : "font-medium"}>
+                                                                                    {qtyInfo.toOrder === 0 ? "Sufficient" : qtyInfo.toOrder.toLocaleString()}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500 mt-0.5">
+                                                                                Available: {qtyInfo.available.toLocaleString()}
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="text-xs text-gray-500 mt-0.5">
-                                                                            Available: {qtyInfo.available.toLocaleString()}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })()}</TableCell>
+                                                                    );
+                                                                })()}</TableCell>
                                                             <TableCell>{material.unit}</TableCell>
                                                             <TableCell>
                                                                 {(() => {
@@ -609,6 +732,21 @@ const MonthWiseForecast = () => {
                                                                         // Use month-specific key
                                                                         const orderKey = `${material.id}_month_${monthData.monthNumber}`;
                                                                         const orderInfo = orders[orderKey];
+
+                                                                        // If currently editing this item
+                                                                        if (editingItem?.monthNumber === monthData.monthNumber && editingItem?.materialId === material.id) {
+                                                                            return (
+                                                                                <>
+                                                                                    <Button size="sm" onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-700 h-8 w-8 p-0">
+                                                                                        <Check className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                    <Button size="sm" variant="outline" onClick={handleCancelEdit} className="text-red-600 border-red-200 hover:bg-red-50 h-8 w-8 p-0">
+                                                                                        <X className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                </>
+                                                                            );
+                                                                        }
+
                                                                         if (orderInfo?.ordered && orderInfo?.trackingId) {
                                                                             return (
                                                                                 <Button
@@ -623,15 +761,33 @@ const MonthWiseForecast = () => {
                                                                             );
                                                                         }
                                                                         return (
-                                                                            <Button
-                                                                                size="sm"
-                                                                                onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
-                                                                                disabled={isOrdering}
-                                                                                className="bg-blue-600 hover:bg-blue-700"
-                                                                            >
-                                                                                <ShoppingCart className="w-3 h-3 mr-1" />
-                                                                                Order Now
-                                                                            </Button>
+                                                                            <>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => handleOrderMaterial(monthData.monthNumber, material.id)}
+                                                                                    disabled={isOrdering}
+                                                                                    className="bg-blue-600 hover:bg-blue-700"
+                                                                                >
+                                                                                    <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                                    Order Now
+                                                                                </Button>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    onClick={() => handleStartEdit(monthData.monthNumber, material.id, material.quantity)}
+                                                                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                                                >
+                                                                                    <Edit className="w-4 h-4" />
+                                                                                </Button>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    onClick={() => handleDeleteMaterial(monthData.monthNumber, material.id)}
+                                                                                    className="text-red-600 border-red-200 hover:bg-red-50"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </>
                                                                         );
                                                                     })()}
                                                                 </div>
